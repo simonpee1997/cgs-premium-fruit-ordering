@@ -60,7 +60,8 @@ export async function loadData() {
                 ? "product_id"
                 : table === "sale_item_costs"
                   ? "sale_item_id"
-                  : table === "system_settings"
+                  : table === "system_settings" ||
+                      table === "online_store_settings"
                     ? "branch_id"
                     : "id",
           )
