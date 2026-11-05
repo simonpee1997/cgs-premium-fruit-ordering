@@ -767,7 +767,14 @@ export default function Retail({ configured }: { configured: boolean }) {
                       </div>
                       <div className="product-info">
                         <small>{p.sku}</small>
-                        <h3>{p.name}</h3>
+                        <h3>
+                          {p.name}
+                          {p.english_name && (
+                            <span className="product-english-name" lang="en">
+                              {p.english_name}
+                            </span>
+                          )}
+                        </h3>
                         <strong>{money(p.price_sen)}</strong>
                       </div>
                     </button>
