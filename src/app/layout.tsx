@@ -3,9 +3,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "CHIPSTI · Retail atelier",
   description: "CHIPSTI ENTERPRISE retail operations",
-  manifest: "/manifest.webmanifest",
   icons: { icon: "/icon-192.png", apple: "/icon-192.png" },
-  appleWebApp: { capable: true, title: "CHIPSTI" },
 };
 export const viewport: Viewport = {
   themeColor: "#332b24",

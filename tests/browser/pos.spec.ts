@@ -59,7 +59,7 @@ test.beforeEach(async ({ page }) => {
       },
     }),
   );
-  await page.goto("http://127.0.0.1:3001/");
+  await page.goto("http://127.0.0.1:3001/admin");
 });
 test("Chinese product search, quantities, MYR discount and payment interface", async ({
   page,
@@ -120,4 +120,152 @@ test("workspace fits viewport and restricted roles hide protected navigation", a
   await expect(
     page.getByRole("button", { name: "Reports", exact: true }),
   ).toHaveCount(0);
+});
+
+test("owner can configure pickup, delivery and payment details", async ({
+  page,
+}) => {
+  await expect(
+    page.getByRole("heading", { name: "Point of sale", exact: true }),
+  ).toBeVisible();
+  if (await page.getByRole("button", { name: "Toggle navigation" }).isVisible())
+    await page.getByRole("button", { name: "Toggle navigation" }).click();
+  await page
+    .getByRole("button", { name: "Online Orders", exact: true })
+    .click();
+  await expect(page.getByText("Online ordering is paused")).toBeVisible();
+  await page
+    .getByRole("button", { name: "Online shop settings", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "Online shop settings" });
+  await dialog
+    .getByLabel("Pickup address", { exact: true })
+    .fill("Test collection address, Kuala Lumpur");
+  await dialog
+    .getByLabel("Delivery instructions / estimated timing")
+    .fill("Test delivery instructions");
+  await dialog.getByLabel("Flat delivery fee (RM)").fill("5.00");
+  await dialog.getByLabel("Bank name", { exact: true }).fill("Test Bank");
+  await dialog
+    .getByLabel("Bank account holder", { exact: true })
+    .fill("Test Store");
+  await dialog
+    .getByLabel("Bank account number", { exact: true })
+    .fill("TEST-ONLY-ACCOUNT");
+  await dialog.getByLabel("Enable online orders", { exact: true }).check();
+  let submitted: Record<string, unknown> | undefined;
+  await page.route("**/api/online-orders", async (route) => {
+    submitted = route.request().postDataJSON();
+    await route.fulfill({ json: { id: null } });
+  });
+  await dialog
+    .getByRole("button", { name: "Save online shop settings" })
+    .click();
+  await expect(dialog).toHaveCount(0);
+  expect(submitted?.operation).toBe("configure");
+  expect(
+    (submitted?.settings as { delivery_fee_sen: number }).delivery_fee_sen,
+  ).toBe(500);
+  expect(
+    (submitted?.settings as { allow_delivery: boolean }).allow_delivery,
+  ).toBe(true);
+});
+
+test("admin confirms funds explicitly before recording a customer order as paid", async ({
+  page,
+}) => {
+  const id = "70000000-0000-0000-0000-000000000001";
+  let state = {
+    ...tables,
+    online_orders: [
+      {
+        id,
+        order_number: "WEB-TEST-000001",
+        customer_name: "Test customer",
+        phone: "0100000000",
+        email: null,
+        fulfillment: "delivery",
+        address: "Test delivery address",
+        postcode: "50000",
+        notes: "Test only",
+        status: "payment_submitted",
+        expires_at: "2099-01-01T00:00:00Z",
+        created_at: "2026-11-05T01:00:00Z",
+        total_sen: 2300,
+        delivery_fee_sen: 500,
+        tax_sen: 0,
+        payment_method: "bank",
+        payment_reference: "TEST-REF",
+        sale_id: null as string | null,
+        tracking_token: "60000000-0000-0000-0000-000000000001",
+      },
+    ],
+    online_order_items: [
+      {
+        id: "71000000-0000-0000-0000-000000000001",
+        order_id: id,
+        product_id: products[0].id,
+        sku: "LF-02",
+        name: products[0].name,
+        quantity: 1,
+        total_sen: 1800,
+      },
+    ],
+  };
+  await page.route("**/api/data", (route) =>
+    route.fulfill({
+      json: {
+        profile: {
+          id: staffId,
+          display_name: "Test owner",
+          role: "owner",
+          active: true,
+        },
+        tables: state,
+      },
+    }),
+  );
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "Point of sale", exact: true }),
+  ).toBeVisible();
+  if (await page.getByRole("button", { name: "Toggle navigation" }).isVisible())
+    await page.getByRole("button", { name: "Toggle navigation" }).click();
+  await page
+    .getByRole("button", { name: "Online Orders", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Review order" }).click();
+  const dialog = page.getByRole("dialog", { name: "Review online order" });
+  await expect(
+    dialog.getByLabel("Verified bank / payment reference"),
+  ).toHaveValue("TEST-REF");
+  await dialog
+    .getByRole("checkbox", {
+      name: "I checked that the full payment was received.",
+    })
+    .check();
+  let submitted: Record<string, unknown> | undefined;
+  await page.route("**/api/online-orders", async (route) => {
+    submitted = route.request().postDataJSON();
+    state = {
+      ...state,
+      online_orders: [
+        {
+          ...state.online_orders[0],
+          status: "paid",
+          sale_id: "80000000-0000-0000-0000-000000000001",
+        },
+      ],
+    };
+    await route.fulfill({ json: { id: state.online_orders[0].sale_id } });
+  });
+  await dialog
+    .getByRole("button", { name: "Confirm payment & create sale" })
+    .click();
+  await expect(
+    dialog.getByRole("button", { name: "Mark dispatched" }),
+  ).toBeVisible();
+  expect(submitted?.operation).toBe("confirm_payment");
+  expect(submitted?.verified).toBe(true);
+  expect(submitted?.tendered_sen).toBe(2300);
 });

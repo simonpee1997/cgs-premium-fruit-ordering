@@ -1,0 +1,68 @@
+export type ShopProduct = {
+  id: string;
+  sku: string;
+  name: string;
+  english_name: string | null;
+  description: string | null;
+  price_sen: number;
+  image_url: string | null;
+  category: string | null;
+  available: number;
+};
+export type ShopSettings = {
+  name: string;
+  ssm: string;
+  enabled: boolean;
+  allow_pickup: boolean;
+  allow_delivery: boolean;
+  allow_cash_pickup: boolean;
+  pickup_address: string;
+  contact_phone: string;
+  delivery_fee_sen: number;
+  delivery_note: string;
+  delivery_postcode_prefixes: string[];
+  bank_transfer_available: boolean;
+  duitnow_available: boolean;
+  tax_bps: number;
+};
+export type Catalogue = { store: ShopSettings; products: ShopProduct[] };
+export type PublicOrder = {
+  order_number: string;
+  status: string;
+  fulfillment: "pickup" | "delivery";
+  created_at: string;
+  expires_at: string;
+  customer_name: string;
+  address: string;
+  postcode: string;
+  subtotal_sen: number;
+  delivery_fee_sen: number;
+  tax_sen: number;
+  total_sen: number;
+  payment_method: "cash" | "bank" | "duitnow";
+  payment_reference: string | null;
+  tendered_sen?: number | null;
+  change_sen?: number;
+  receipt_number: string | null;
+  cashier_name: string | null;
+  confirmed_at: string | null;
+  cancellation_reason: string | null;
+  refunded_sen: number;
+  items: {
+    sku: string;
+    name: string;
+    quantity: number;
+    unit_price_sen: number;
+    total_sen: number;
+    refunded_quantity?: number;
+  }[];
+  store: {
+    pickup_address: string;
+    contact_phone: string;
+    delivery_note: string;
+    bank_name: string;
+    bank_account_name: string;
+    bank_account_number: string;
+    duitnow_qr_url: string;
+  };
+};

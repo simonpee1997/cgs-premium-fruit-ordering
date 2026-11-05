@@ -1,4 +1,5 @@
 "use client";
+import OnlineOrders from "@/components/online-orders";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -47,6 +48,7 @@ type Field = {
 const navigation = [
   ["Dashboard", LayoutDashboard],
   ["Point of Sale", ShoppingBag],
+  ["Online Orders", ShoppingBag],
   ["Products", Package],
   ["Inventory", Boxes],
   ["Purchase Orders", Truck],
@@ -175,7 +177,9 @@ export default function Retail({ configured }: { configured: boolean }) {
   const privileged = role === "owner" || role === "manager";
   const inventory = t.inventory ?? [];
   const stock = (id: string) =>
-    inventory.find((i) => i.product_id === id)?.quantity ?? 0;
+    inventory.find((i) => i.product_id === id)?.available ??
+    inventory.find((i) => i.product_id === id)?.quantity ??
+    0;
   const productOptions = products
     .filter((p) => !p.archived)
     .map((p) => ({ value: p.id as string, label: `${p.sku} · ${p.name}` }));
@@ -1311,6 +1315,20 @@ export default function Retail({ configured }: { configured: boolean }) {
                         </strong>
                       </div>
                     ))}
+                    <div className="summary-row">
+                      <span>Delivery / services</span>
+                      <strong>
+                        {money(
+                          items
+                            .filter(
+                              (i) =>
+                                i.product_id === null &&
+                                dateSales.some((s) => s.id === i.sale_id),
+                            )
+                            .reduce((sum, i) => sum + i.total_sen, 0),
+                        )}
+                      </strong>
+                    </div>
                   </section>
                   {role === "owner" && (
                     <section className="panel">
@@ -1461,6 +1479,8 @@ export default function Retail({ configured }: { configured: boolean }) {
                     heads={[
                       "SKU",
                       "Product",
+                      "Recorded stock",
+                      "Reserved online",
                       "Available",
                       "Threshold",
                       "Status",
@@ -1468,6 +1488,10 @@ export default function Retail({ configured }: { configured: boolean }) {
                     rows={products.map((p) => [
                       p.sku,
                       p.name,
+                      inventory.find((i) => i.product_id === p.id)?.quantity ??
+                        0,
+                      inventory.find((i) => i.product_id === p.id)?.reserved ??
+                        0,
                       stock(p.id),
                       p.low_stock,
                       stock(p.id) <= p.low_stock ? "Low stock" : "Healthy",
@@ -2231,6 +2255,9 @@ export default function Retail({ configured }: { configured: boolean }) {
                 <small>Clear or hold the current cart before resuming.</small>
               )}
             </section>
+          )}
+          {page === "Online Orders" && privileged && (
+            <OnlineOrders data={data} refresh={refresh} />
           )}
           <footer>
             CHIPSTI ENTERPRISE <span>SSM 202603232290 (RA0139100-V)</span>

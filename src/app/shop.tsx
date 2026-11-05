@@ -1,0 +1,715 @@
+"use client";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import {
+  ArrowRight,
+  ShoppingBag,
+  Search,
+  Plus,
+  Minus,
+  X,
+  Leaf,
+  Truck,
+  Store,
+  ShieldCheck,
+  Check,
+  RefreshCw,
+} from "lucide-react";
+import { money } from "@/lib/money";
+import type { Catalogue } from "@/lib/shop-types";
+import "./shop.css";
+type Line = { product_id: string; quantity: number };
+export default function Shop() {
+  const router = useRouter();
+  const [data, setData] = useState<Catalogue | null>(null),
+    [loading, setLoading] = useState(true),
+    [error, setError] = useState(""),
+    [query, setQuery] = useState(""),
+    [category, setCategory] = useState("All"),
+    [cart, setCart] = useState<Line[]>([]),
+    [open, setOpen] = useState(false),
+    [checkout, setCheckout] = useState(false),
+    [fulfillment, setFulfillment] = useState<"pickup" | "delivery">("pickup"),
+    [method, setMethod] = useState("cash"),
+    [busy, setBusy] = useState(false),
+    [agreed, setAgreed] = useState(false);
+  const key = useRef("");
+  const load = useCallback(async () => {
+    try {
+      const response = await fetch("/api/shop", { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      setData(result);
+      setError("");
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Unable to load the collection",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  useEffect(() => {
+    const timer = setTimeout(() => void load(), 0);
+    const refresh = setInterval(() => void load(), 60000);
+    return () => {
+      clearTimeout(timer);
+      clearInterval(refresh);
+    };
+  }, [load]);
+  const products = data?.products ?? [],
+    store = data?.store;
+  const count = cart.reduce((n, l) => n + l.quantity, 0),
+    subtotal = cart.reduce(
+      (n, l) =>
+        n +
+        (products.find((p) => p.id === l.product_id)?.price_sen ?? 0) *
+          l.quantity,
+      0,
+    );
+  const fee = fulfillment === "delivery" ? (store?.delivery_fee_sen ?? 0) : 0,
+    tax = Math.floor(((subtotal + fee) * (store?.tax_bps ?? 0) + 5000) / 10000),
+    total = subtotal + fee + tax;
+  const categories = [
+    "All",
+    ...new Set(products.map((p) => p.category || "Collection")),
+  ];
+  const visible = products.filter(
+    (p) =>
+      (category === "All" || (p.category || "Collection") === category) &&
+      `${p.name} ${p.english_name ?? ""} ${p.sku}`
+        .toLowerCase()
+        .includes(query.toLowerCase()),
+  );
+  const canBank = Boolean(store?.bank_transfer_available),
+    canQR = Boolean(store?.duitnow_available);
+  const paymentOptions = [
+    ...(fulfillment === "pickup" && store?.allow_cash_pickup
+      ? [{ id: "cash", label: "Pay cash on collection" }]
+      : []),
+    ...(canBank ? [{ id: "bank", label: "Bank transfer" }] : []),
+    ...(canQR ? [{ id: "duitnow", label: "DuitNow QR" }] : []),
+  ];
+  function quantity(id: string, delta: number) {
+    const p = products.find((p) => p.id === id);
+    if (!p) return;
+    key.current = "";
+    setCart((lines) => {
+      const old = lines.find((l) => l.product_id === id);
+      const q = Math.max(
+        0,
+        Math.min(100, p.available, (old?.quantity ?? 0) + delta),
+      );
+      return old
+        ? lines
+            .map((l) => (l.product_id === id ? { ...l, quantity: q } : l))
+            .filter((l) => l.quantity > 0)
+        : q > 0
+          ? [...lines, { product_id: id, quantity: q }]
+          : lines;
+    });
+  }
+  function beginCheckout() {
+    if (!store) return;
+    const f = store.allow_pickup ? "pickup" : "delivery";
+    setFulfillment(f);
+    setMethod(
+      f === "pickup" && store.allow_cash_pickup
+        ? "cash"
+        : canBank
+          ? "bank"
+          : canQR
+            ? "duitnow"
+            : "",
+    );
+    setCheckout(true);
+    setAgreed(false);
+    key.current = "";
+  }
+  return (
+    <div className="shop">
+      <div className="shop-announcement">
+        A little more extraordinary.{" "}
+        <span>Thoughtfully selected in Malaysia.</span>
+      </div>
+      <header className="shop-header">
+        <Link href="/" className="shop-brand">
+          <span className="shop-monogram">C</span>
+          <span>
+            CHIPSTI<small>ENTERPRISE</small>
+          </span>
+        </Link>
+        <nav>
+          <a href="#collection">The collection</a>
+          <a href="#our-story">Our story</a>
+          <a href="#shop-help">Pickup & delivery</a>
+        </nav>
+        <button
+          className="shop-basket"
+          onClick={() => {
+            setOpen(true);
+            setCheckout(false);
+          }}
+          aria-label={`Open basket, ${count} items`}
+        >
+          <ShoppingBag size={20} />
+          <span>Basket</span>
+          <b>{count}</b>
+        </button>
+      </header>
+      <main>
+        <section className="shop-hero">
+          <div>
+            <span className="shop-eyebrow">THE CHIPSTI COLLECTION</span>
+            <h1>
+              Small indulgences.
+              <br />
+              <em>Beautiful moments.</em>
+            </h1>
+            <p>
+              Discover delightful snacks, thoughtful gifts and everyday
+              favourites. A collection chosen with care, for you to enjoy and
+              share.
+            </p>
+            <a href="#collection" className="shop-primary">
+              Explore the collection
+              <ArrowRight size={17} />
+            </a>
+            <div className="shop-hero-note">
+              <Leaf size={16} />
+              Good things, thoughtfully selected.
+            </div>
+          </div>
+          <div className="shop-hero-art" aria-hidden="true">
+            <span className="shop-art-circle" />
+            <div className="shop-art-bag rear">
+              <span>CHIPSTI</span>
+              <Leaf size={56} strokeWidth={1} />
+              <small>MADE FOR MOMENTS</small>
+            </div>
+            <div className="shop-art-bag front">
+              <span>CHIPSTI</span>
+              <Leaf size={65} strokeWidth={1} />
+              <small>A LITTLE MORE EXTRAORDINARY</small>
+            </div>
+            <span className="shop-art-caption">THE ART OF A LITTLE TREAT</span>
+          </div>
+        </section>
+        <div className="shop-values">
+          <span>
+            <Leaf size={18} />
+            Curated with care
+          </span>
+          <span>
+            <Store size={18} />
+            Convenient store pickup
+          </span>
+          <span>
+            <Truck size={18} />
+            Delivery available
+          </span>
+          <span>
+            <ShieldCheck size={18} />
+            Secure order handling
+          </span>
+        </div>
+        <section className="shop-collection" id="collection">
+          <div className="shop-section-heading">
+            <div>
+              <span className="shop-eyebrow">FIND YOUR NEXT FAVOURITE</span>
+              <h2>The collection</h2>
+            </div>
+            <label className="shop-search">
+              <Search size={17} />
+              <input
+                aria-label="Search collection"
+                placeholder="Search products or SKU…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </label>
+          </div>
+          <div className="shop-categories">
+            {categories.map((c) => (
+              <button
+                key={c}
+                className={category === c ? "chosen" : ""}
+                onClick={() => setCategory(c)}
+              >
+                {c === "All" ? "All products" : c}
+              </button>
+            ))}
+          </div>
+          {loading ? (
+            <div className="shop-loading" role="status">
+              <RefreshCw size={22} className="spin" />
+              Preparing the collection…
+            </div>
+          ) : !data ? (
+            <div className="shop-unavailable" role="status">
+              <h3>Our collection is being prepared.</h3>
+              <p>{error}</p>
+              <button className="shop-secondary" onClick={() => void load()}>
+                Try again
+                <RefreshCw size={16} />
+              </button>
+            </div>
+          ) : (
+            <>
+              {!store?.enabled && (
+                <div className="shop-store-notice">
+                  Browse our collection. Online ordering is opening soon.
+                </div>
+              )}
+              <div className="shop-grid">
+                {visible.map((p, i) => (
+                  <article className="shop-product" key={p.id}>
+                    <div className={`shop-product-image shade-${i % 4}`}>
+                      {p.image_url ? (
+                        <Image
+                          src={p.image_url}
+                          alt={p.name}
+                          width={500}
+                          height={500}
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="shop-mini-bag" aria-hidden="true">
+                          <span>CHIPSTI</span>
+                          <Leaf size={38} strokeWidth={1} />
+                          <small>{p.sku}</small>
+                        </div>
+                      )}
+                      <span className="shop-stock-label">
+                        {p.available > 0 ? "Available" : "Currently sold out"}
+                      </span>
+                    </div>
+                    <div className="shop-product-info">
+                      <small>
+                        {p.category ?? "The collection"} · {p.sku}
+                      </small>
+                      <h3>{p.name}</h3>
+                      {p.english_name && <p>{p.english_name}</p>}
+                      <div>
+                        <strong>{money(p.price_sen)}</strong>
+                        <button
+                          onClick={() => quantity(p.id, 1)}
+                          disabled={
+                            p.available <= 0 ||
+                            !store?.enabled ||
+                            cart.some(
+                              (l) =>
+                                l.product_id === p.id &&
+                                l.quantity >= Math.min(100, p.available),
+                            )
+                          }
+                          aria-label={`Add ${p.sku} to basket`}
+                        >
+                          <Plus size={18} />
+                        </button>
+                      </div>
+                    </div>
+                    {p.description && (
+                      <p className="shop-product-description">
+                        {p.description}
+                      </p>
+                    )}
+                  </article>
+                ))}
+              </div>
+              {visible.length === 0 && (
+                <div className="shop-unavailable">
+                  <h3>No products found</h3>
+                  <p>Try another search or collection.</p>
+                </div>
+              )}
+            </>
+          )}
+        </section>
+        <section className="shop-story" id="our-story">
+          <Leaf size={37} strokeWidth={1} />
+          <span className="shop-eyebrow">A NOTE FROM CHIPSTI</span>
+          <h2>
+            It’s the little things
+            <br />
+            that make a day.
+          </h2>
+          <p>
+            A favourite snack. A thoughtful gift. Something lovely to share.
+            <br />
+            We bring together products that make everyday moments feel a little
+            more special.
+          </p>
+        </section>
+        <section className="shop-help" id="shop-help">
+          <div>
+            <Store size={23} />
+            <h3>Collect at your convenience</h3>
+            <p>
+              {store?.pickup_address ||
+                "Choose store pickup at checkout. Collection details will appear with your order once pickup is configured."}
+            </p>
+          </div>
+          <div>
+            <Truck size={23} />
+            <h3>A little joy, delivered</h3>
+            <p>
+              {store?.delivery_note ||
+                "Delivery availability and charges are shown at checkout when online ordering is open."}
+            </p>
+          </div>
+          <div>
+            <ShieldCheck size={23} />
+            <h3>Order with confidence</h3>
+            <p>
+              Order totals are confirmed at checkout. Transfer and DuitNow
+              payments are checked by our team before an order is marked paid.
+            </p>
+          </div>
+        </section>
+      </main>
+      <footer className="shop-footer">
+        <div className="shop-footer-brand">
+          CHIPSTI ENTERPRISE<small>SSM: 202603232290 (RA0139100-V)</small>
+        </div>
+        <span>Malaysia · MYR</span>
+        <Link href="/admin">
+          Staff sign in
+          <ArrowRight size={13} />
+        </Link>
+      </footer>
+      {open && (
+        <div className="shop-overlay">
+          <section
+            className="shop-cart"
+            role="dialog"
+            aria-modal="true"
+            aria-label={checkout ? "Online checkout" : "Your basket"}
+          >
+            <div className="shop-cart-heading">
+              <div>
+                <span className="shop-eyebrow">SOMETHING GOOD AWAITS</span>
+                <h2>{checkout ? "Checkout" : "Your basket"}</h2>
+              </div>
+              <button
+                className="shop-icon"
+                onClick={() => !busy && setOpen(false)}
+                aria-label="Close basket"
+              >
+                <X />
+              </button>
+            </div>
+            {!cart.length ? (
+              <div className="shop-empty">
+                <ShoppingBag size={38} strokeWidth={1} />
+                <h3>A fresh start.</h3>
+                <p>Add something lovely from the collection.</p>
+                <button className="shop-primary" onClick={() => setOpen(false)}>
+                  Explore products
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="shop-cart-items">
+                  {cart.map((l) => {
+                    const p = products.find((p) => p.id === l.product_id);
+                    if (!p) return null;
+                    return (
+                      <div className="shop-cart-item" key={p.id}>
+                        <div>
+                          <h3>{p.name}</h3>
+                          <small>
+                            {p.sku} · {money(p.price_sen)} each
+                          </small>
+                          <div className="shop-quantity">
+                            <button
+                              disabled={busy}
+                              onClick={() => quantity(p.id, -1)}
+                              aria-label={`Remove one ${p.sku}`}
+                            >
+                              <Minus size={14} />
+                            </button>
+                            <span>{l.quantity}</span>
+                            <button
+                              disabled={
+                                busy || l.quantity >= Math.min(100, p.available)
+                              }
+                              onClick={() => quantity(p.id, 1)}
+                              aria-label={`Add one ${p.sku}`}
+                            >
+                              <Plus size={14} />
+                            </button>
+                          </div>
+                        </div>
+                        <strong>{money(p.price_sen * l.quantity)}</strong>
+                      </div>
+                    );
+                  })}
+                </div>
+                {checkout ? (
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (!agreed) return;
+                      const form = new FormData(e.currentTarget);
+                      setBusy(true);
+                      setError("");
+                      key.current ||= crypto.randomUUID();
+                      try {
+                        const response = await fetch("/api/shop/order", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            key: key.current,
+                            expected_total_sen: total,
+                            items: cart,
+                            fulfillment,
+                            payment_method: method,
+                            name: form.get("name"),
+                            phone: form.get("phone"),
+                            email: form.get("email"),
+                            address:
+                              fulfillment === "delivery"
+                                ? form.get("address")
+                                : "",
+                            postcode:
+                              fulfillment === "delivery"
+                                ? form.get("postcode")
+                                : "",
+                            notes: form.get("notes"),
+                            website: form.get("website"),
+                          }),
+                        });
+                        const result = await response.json();
+                        if (!response.ok) throw new Error(result.error);
+                        router.push(`/order/${result.token}`);
+                      } catch (e) {
+                        setError(
+                          e instanceof Error
+                            ? e.message
+                            : "Unable to place your order",
+                        );
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
+                  >
+                    <fieldset disabled={busy}>
+                      <div className="shop-form-grid">
+                        <label>
+                          Full name
+                          <input
+                            name="name"
+                            autoComplete="name"
+                            maxLength={150}
+                            required
+                          />
+                        </label>
+                        <label>
+                          Contact number
+                          <input
+                            name="phone"
+                            type="tel"
+                            autoComplete="tel"
+                            maxLength={30}
+                            required
+                          />
+                        </label>
+                        <label className="wide">
+                          Email (optional)
+                          <input
+                            name="email"
+                            type="email"
+                            autoComplete="email"
+                            maxLength={254}
+                          />
+                        </label>
+                      </div>
+                      <label>
+                        How would you like your order?
+                        <select
+                          aria-label="Fulfillment method"
+                          value={fulfillment}
+                          onChange={(e) => {
+                            const f = e.target.value as "pickup" | "delivery";
+                            setFulfillment(f);
+                            setMethod(
+                              f === "pickup" && store?.allow_cash_pickup
+                                ? "cash"
+                                : canBank
+                                  ? "bank"
+                                  : canQR
+                                    ? "duitnow"
+                                    : "",
+                            );
+                            key.current = "";
+                          }}
+                        >
+                          {store?.allow_pickup && (
+                            <option value="pickup">Collect from store</option>
+                          )}
+                          {store?.allow_delivery && (
+                            <option value="delivery">Delivery</option>
+                          )}
+                        </select>
+                      </label>
+                      {fulfillment === "pickup" ? (
+                        <p className="shop-checkout-note">
+                          Pickup: {store?.pickup_address}
+                        </p>
+                      ) : (
+                        <>
+                          <label>
+                            Complete Malaysian delivery address
+                            <textarea
+                              name="address"
+                              autoComplete="street-address"
+                              minLength={10}
+                              maxLength={1000}
+                              required
+                              placeholder="Street, unit, city and state"
+                            />
+                          </label>
+                          <label>
+                            Postcode
+                            <input
+                              name="postcode"
+                              inputMode="numeric"
+                              autoComplete="postal-code"
+                              pattern="[0-9]{5}"
+                              maxLength={5}
+                              required
+                            />
+                          </label>
+                          <p className="shop-checkout-note">
+                            {store?.delivery_note}
+                          </p>
+                        </>
+                      )}
+                      <label>
+                        Payment method
+                        <select
+                          aria-label="Online payment method"
+                          value={method}
+                          onChange={(e) => {
+                            setMethod(e.target.value);
+                            key.current = "";
+                          }}
+                          required
+                        >
+                          <option value="" disabled>
+                            Select payment method
+                          </option>
+                          {paymentOptions.map((p) => (
+                            <option value={p.id} key={p.id}>
+                              {p.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <p className="shop-checkout-note">
+                        {method === "cash"
+                          ? "Pay when you collect. Your order will be marked paid only after our team receives payment."
+                          : "Payment instructions will appear after placing your order. Transfers are manually verified by our team."}
+                      </p>
+                      <label>
+                        Order notes (optional)
+                        <textarea name="notes" maxLength={1000} />
+                      </label>
+                      <label className="shop-honeypot" aria-hidden="true">
+                        Website
+                        <input
+                          name="website"
+                          tabIndex={-1}
+                          autoComplete="off"
+                        />
+                      </label>
+                      <div className="shop-totals">
+                        <div>
+                          <span>Products</span>
+                          <strong>{money(subtotal)}</strong>
+                        </div>
+                        <div>
+                          <span>
+                            {fulfillment === "delivery" ? "Delivery" : "Pickup"}
+                          </span>
+                          <strong>{money(fee)}</strong>
+                        </div>
+                        <div>
+                          <span>Tax</span>
+                          <strong>{money(tax)}</strong>
+                        </div>
+                        <div className="shop-grand-total">
+                          <span>Total</span>
+                          <strong>{money(total)}</strong>
+                        </div>
+                      </div>
+                      <label className="shop-agreement">
+                        <input
+                          type="checkbox"
+                          checked={agreed}
+                          onChange={(e) => setAgreed(e.target.checked)}
+                          required
+                        />
+                        I agree to the order total and authorize CHIPSTI to use
+                        my contact details to process this order.
+                      </label>
+                      <p className="shop-checkout-note">
+                        Stock is reserved for 24 hours while your order awaits
+                        payment confirmation. Save your private order link to
+                        check its status. We do not enroll you in marketing.
+                      </p>
+                      {error && (
+                        <p className="shop-error" role="alert">
+                          {error}
+                        </p>
+                      )}
+                      <button
+                        className="shop-primary full"
+                        disabled={busy || !method || !agreed || total <= 0}
+                      >
+                        {busy ? "Placing your order…" : "Place order"}
+                        <Check size={17} />
+                      </button>
+                      <button
+                        type="button"
+                        className="shop-back"
+                        onClick={() => setCheckout(false)}
+                      >
+                        Back to basket
+                      </button>
+                    </fieldset>
+                  </form>
+                ) : (
+                  <>
+                    <div className="shop-totals">
+                      <div className="shop-grand-total">
+                        <span>Subtotal</span>
+                        <strong>{money(subtotal)}</strong>
+                      </div>
+                    </div>
+                    <p className="shop-checkout-note">
+                      Delivery and any applicable tax are calculated at
+                      checkout.
+                    </p>
+                    <button
+                      className="shop-primary full"
+                      disabled={!store?.enabled}
+                      onClick={beginCheckout}
+                    >
+                      Continue to checkout
+                      <ArrowRight size={17} />
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+          </section>
+        </div>
+      )}
+    </div>
+  );
+}

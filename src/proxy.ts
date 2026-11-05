@@ -20,4 +20,12 @@ export async function proxy(request: NextRequest) {
   await db.auth.getUser();
   return response;
 }
-export const config = { matcher: ["/", "/api/:path*"] };
+export const config = {
+  matcher: [
+    "/admin/:path*",
+    "/api/auth",
+    "/api/action",
+    "/api/data",
+    "/api/export",
+  ],
+};

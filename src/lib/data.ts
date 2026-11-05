@@ -36,6 +36,10 @@ export async function loadData() {
           "purchase_orders",
           "purchase_order_items",
           "cash_movements",
+          "online_orders",
+          "online_order_items",
+          "online_order_events",
+          "online_store_settings",
         ]
       : []),
     ...(profile.role === "owner"
@@ -68,6 +72,18 @@ export async function loadData() {
       return [table, records] as const;
     }),
   );
-  return { profile, tables: Object.fromEntries(pairs) };
+  const tablesData = Object.fromEntries(pairs);
+  const availability = await db.rpc("stock_availability");
+  if (availability.error)
+    throw new Error(
+      "Stock availability could not be loaded. Confirm the online-shop migration has been applied.",
+    );
+  tablesData.inventory = (tablesData.inventory ?? []).map((row) => ({
+    ...row,
+    ...availability.data?.find(
+      (s: { product_id: string }) => s.product_id === row.product_id,
+    ),
+  }));
+  return { profile, tables: tablesData };
 }
 export type AppData = NonNullable<Awaited<ReturnType<typeof loadData>>>;

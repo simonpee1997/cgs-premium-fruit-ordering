@@ -1,7 +1,7 @@
 {
-  "name": "CHIPSTI ENTERPRISE",
-  "short_name": "CHIPSTI",
-  "start_url": "/",
+  "name": "CHIPSTI Staff POS",
+  "short_name": "CHIPSTI POS",
+  "start_url": "/admin",
   "display": "standalone",
   "background_color": "#f7f4ee",
   "theme_color": "#332b24",
@@ -18,5 +18,6 @@
       "type": "image/png",
       "purpose": "any"
     }
-  ]
+  ],
+  "scope": "/admin"
 }

@@ -1,12 +1,10 @@
-import Retail from "./retail";
-export const dynamic = "force-dynamic";
+import type { Metadata } from "next";
+import Shop from "./shop";
+export const metadata: Metadata = {
+  title: "CHIPSTI ENTERPRISE · A little more extraordinary",
+  description:
+    "Discover the CHIPSTI collection. Shop snacks and gifts online with pickup and delivery in Malaysia.",
+};
 export default function Page() {
-  return (
-    <Retail
-      configured={Boolean(
-        process.env.NEXT_PUBLIC_SUPABASE_URL &&
-        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-      )}
-    />
-  );
+  return <Shop />;
 }

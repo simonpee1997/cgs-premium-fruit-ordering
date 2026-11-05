@@ -1414,3 +1414,34 @@ html[data-theme="dark"] .brand-mark {
     font-size: 11px;
   }
 }
+.online-admin textarea {
+  width: 100%;
+  min-height: 78px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  padding: 12px;
+}
+.online-admin .modal form {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.online-admin .modal p {
+  font-size: 11px;
+}
+.online-admin .modal form > p {
+  margin: 0;
+}
+.online-admin .modal .toolbar {
+  margin-top: 20px;
+}
+.online-admin .modal .toolbar .primary {
+  width: auto;
+  margin-top: 0;
+}
+.online-admin .modal .toolbar .secondary {
+  width: auto;
+}

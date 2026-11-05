@@ -40,7 +40,7 @@ function cart(key: string, quantity = 2) {
 beforeAll(async () => {
   db = new PGlite();
   await db.exec(
-    `create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('test.uid',true),'')::uuid $$;grant usage on schema auth to authenticated;grant execute on function auth.uid() to authenticated;create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);create table storage.objects(id uuid,bucket_id text);alter table storage.objects enable row level security;`,
+    `create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('test.uid',true),'')::uuid $$;grant usage on schema auth to authenticated;grant execute on function auth.uid() to authenticated;create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);create table storage.objects(id uuid,bucket_id text);alter table storage.objects enable row level security;`,
   );
   const sql = readFileSync("supabase/migrations/001_core.sql", "utf8").replace(
     "create extension if not exists pgcrypto;",
@@ -49,6 +49,9 @@ beforeAll(async () => {
   await db.exec(sql);
   await db.exec(readFileSync("supabase/migrations/002_voids.sql", "utf8"));
   await db.exec(readFileSync("supabase/migrations/003_metadata.sql", "utf8"));
+  await db.exec(
+    readFileSync("supabase/migrations/004_online_store.sql", "utf8"),
+  );
   await db.exec(
     `insert into auth.users values('${owner}'),('${cashier}'),('${manager}');insert into profiles(id,display_name,branch_id,role) values('${owner}','Owner','20000000-0000-0000-0000-000000000001','owner'),('${cashier}','Cashier','20000000-0000-0000-0000-000000000001','cashier'),('${manager}','Manager','20000000-0000-0000-0000-000000000001','manager');`,
   );

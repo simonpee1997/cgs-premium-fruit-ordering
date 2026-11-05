@@ -48,3 +48,17 @@
 ## Explicitly outside current release
 
 Automatic payment integrations, LHDN integration, bundles, automated loyalty rules, branch-switching UI, camera scanning, self-service staff recovery UI, silent printer drivers and scheduled backup automation. Do not advertise these as working.
+
+## Online storefront update (local implementation; rollout pending approval)
+
+- [x] Public shop at `/` and staff POS at `/admin`
+- [x] Pickup/delivery order placement with server totals and frozen quotes
+- [x] Unpaid stock reservations honored by existing POS/stock adjustments
+- [x] Private customer status/reference submission and manual payment confirmation
+- [x] Owner fulfillment/payment settings and manager online-order controls
+- [x] Delivery fee receipts/refunds/voids without service stock
+- [x] Public-read minimization, private server credentials and persisted abuse limits
+- [ ] Owner approval for migration 004 and production release
+- [ ] Apply migration 004 to CHIPSTI only; configure actual fulfillment/payment details
+- [ ] Deploy approved update and verify live Auth, orders, receipts, refunds and reports
+- [ ] Multi-session PostgreSQL contention and real iPad/Safari/hardware verification

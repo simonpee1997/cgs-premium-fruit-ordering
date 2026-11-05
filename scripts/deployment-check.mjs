@@ -7,6 +7,26 @@ const failures = [];
 for (const name of required) {
   if (!process.env[name]) failures.push(`${name} is missing`);
 }
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SUPABASE_SECRET_KEY)
+  failures.push(
+    "A server-only SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY is required for online orders",
+  );
+const privateKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
+if (privateKey) {
+  if (privateKey.startsWith("eyJ")) {
+    try {
+      const payload = JSON.parse(
+        Buffer.from(privateKey.split(".")[1], "base64url").toString(),
+      );
+      if (payload.role !== "service_role")
+        failures.push("The server order credential must be a service-role key");
+    } catch {
+      failures.push("The server order credential is malformed");
+    }
+  } else if (!/^sb_secret_[A-Za-z0-9_-]{20,}$/.test(privateKey))
+    failures.push("Supply a real server-only Supabase secret/service-role key");
+}
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 if (url) {
   try {

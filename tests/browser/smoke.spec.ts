@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 test("setup screen is honest, accessible and responsive", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/admin");
   await expect(
     page.getByRole("heading", { name: "Let’s open your store." }),
   ).toBeVisible();

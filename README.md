@@ -2,6 +2,10 @@
 
 A Next.js App Router / TypeScript / Tailwind POS backed by Supabase Auth, PostgreSQL and Storage. Business identity: **202603232290 (RA0139100-V)**. MYR throughout; reporting uses **Asia/Kuala_Lumpur**. All authoritative financial calculations use integer sen in PostgreSQL; forms accept RM and percentages.
 
+## Public shop and online orders
+
+The updated application serves the public collection and online checkout at `/`, with staff POS at `/admin`. It supports store pickup and delivery, pending stock reservations, customer order-status links, manual bank/DuitNow references and staff payment confirmation into the existing sales/receipt/reporting system. See [online-shop setup and rollout](docs/ONLINE-SHOP.md) before applying migration 004 or deploying. Online ordering starts disabled until the owner configures fulfillment/payment details and actual stock. The new migration and production release require owner approval.
+
 ## Run locally
 
 Requires Node.js 24 (.nvmrc and Vercel runtime are pinned to 24.x), npm, and a Supabase project. Use the existing checkout; cloud tasks are isolated already, so a worktree is unnecessary.
@@ -22,6 +26,7 @@ Without configuration, the app shows explicit setup instructions. It does not in
    - `supabase/migrations/001_core.sql`: schema, RLS, transaction functions, product/category seed, Storage bucket.
    - `supabase/migrations/002_voids.sql`: audited full-sale voids through compensating refunds.
    - `supabase/migrations/003_metadata.sql`: role definitions, update timestamps, historical category snapshots.
+   - `supabase/migrations/004_online_store.sql`: public catalogue, private customer orders, pickup/delivery settings, reservations and confirmation into paid sales. On an already installed CHIPSTI project, apply only the unapplied migration; do not rerun the first three.
 2. In Authentication settings disable public signups. Set the production Site URL and permitted redirect URLs. Use Supabase's email invitation / user creation tools to create the first owner. No public application endpoint creates elevated accounts.
 3. Copy that Auth user's UUID and run the following **as the database administrator in the SQL editor**, replacing the placeholder UUID and display name:
 
@@ -31,20 +36,23 @@ Without configuration, the app shows explicit setup instructions. It does not in
      '20000000-0000-0000-0000-000000000001', 'owner');
    ```
 
-   Never expose the SQL editor credentials or a service-role key to the browser. The application needs no service-role key. Anonymous Auth users receive no application access without an active staff profile.
+   Never expose the SQL editor credentials or a service-role key to the browser. The public order API requires a server-only service key; staff POS operations continue to use the staff session. Anonymous Auth users receive no application access without an active staff profile.
 
 4. Set these environment variables and restart Next.js:
 
-   | Variable                               | Value                                        |
-   | -------------------------------------- | -------------------------------------------- |
-   | `NEXT_PUBLIC_SUPABASE_URL`             | Project's HTTPS URL                          |
-   | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Project publishable key (or legacy anon key) |
+   | Variable                                             | Value                                                                         |
+   | ---------------------------------------------------- | ----------------------------------------------------------------------------- |
+   | `NEXT_PUBLIC_SUPABASE_URL`                           | Project's HTTPS URL                                                           |
+   | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`               | Project publishable key (or legacy anon key)                                  |
+   | `SUPABASE_SERVICE_ROLE_KEY` or `SUPABASE_SECRET_KEY` | Server-only order API credential, normally injected by the Vercel integration |
 
    For a restricted cloud environment, add your exact project hostname (for example, `PROJECT-REF.supabase.co`) to its network allowlist so server-side Auth and database requests can reach it.
 
-   Both are intended for browser use. Keep real credentials out of Git. Application security comes from Auth, server validation and RLS, not secrecy of the publishable key.
+   These two public variables are intended for browser use. Keep real credentials out of Git. Application security comes from Auth, server validation and RLS, not secrecy of the publishable key.
 
-5. Sign in as owner. Add actual inventory via **Inventory → Adjust stock**, with a reason. Zero stock prevents checkout.
+   For the online order API, also supply the **server-only** `SUPABASE_SERVICE_ROLE_KEY` or `SUPABASE_SECRET_KEY`; the Vercel integration normally supplies it. Never prefix a privileged key with `NEXT_PUBLIC_`.
+
+5. Sign in as owner at `/admin`. Add actual inventory via **Inventory → Adjust stock**, with a reason. Zero stock prevents checkout.
 6. Create Auth users for staff through Supabase, then assign their UUIDs through **Staff Management**. A second manager/owner is required to approve another staff member's closing. Owners cannot alter their own privileges through the app.
 7. Confirm the `product-images` bucket was created. Uploads accept JPEG, PNG and WebP up to 5 MB; only owners may upload. Product images are intentionally public, so upload product photos only, never customer documents.
 8. Open **Cashier Closing → Open session**, enter opening float, then use **Point of Sale**.
@@ -91,7 +99,7 @@ Browser checks cover the honest unconfigured screen, Chinese product search, car
 
 1. Import the GitHub repository into Vercel with the repository root as the project root.
 2. Select the Next.js framework preset and Node 24. The checked-in `vercel.json` runs `npm ci` and `npm run deploy:check && npm run build`; the preflight rejects missing, placeholder or secret public configuration.
-3. Set both public Supabase variables in the intended Production/Preview environments **before building**. Public variables are bundled at build time; redeploy after changing them.
+3. Set both public Supabase variables and the server-only service key in the intended Production/Preview environments **before building**. Public variables are bundled at build time; redeploy after changing them.
 4. Apply the migrations to the corresponding Supabase project, provision owner access and enter actual stock as above. Use a separate Supabase project for staging.
 5. Set the final Vercel domain in Supabase Auth settings. Redeploy, sign in and execute the deployment checklist against staging first.
 6. Review Supabase network restrictions, backups, retention, Auth abuse limits and organization access. Use HTTPS only. A successful source push or CI run is not evidence of a completed live deployment; verify the Vercel deployment URL and hosted acceptance workflow separately.
@@ -107,6 +115,9 @@ Test recovery into an isolated project: restore schema/data and associated Auth 
 ## Repository structure
 
 ```text
+src/app/shop.tsx            Public collection and checkout
+src/app/admin/             Staff POS entry point
+src/app/order/             Private customer order/status and receipt pages
 src/app/retail.tsx          Responsive staff workspace and cashier interface
 src/app/globals.css         Cream/espresso theme, dark mode, responsive/print layouts
 src/app/api/auth/           Supabase password sign-in and sign-out
