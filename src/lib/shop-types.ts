@@ -52,6 +52,7 @@ export type PublicOrder = {
   total_sen: number;
   payment_method: "cash" | "bank" | "duitnow";
   payment_reference: string | null;
+  payment_proof_received?: boolean;
   tendered_sen?: number | null;
   change_sen?: number;
   receipt_number: string | null;

@@ -73,3 +73,16 @@ Automatic payment integrations, LHDN integration, bundles, automated loyalty rul
 - [ ] Apply 006 to CHIPSTI POS only, before the application deployment.
 - [ ] Owner configures verified Klang Valley coverage and actual fees.
 - [ ] Hosted checkout/payment/refund and actual iPad/Safari/device checks.
+
+## Official logo and private DuitNow proofs
+
+- [x] Supplied original files identified, preserved byte-for-byte, and hashes recorded.
+- [x] Shared logo in headers, staff login/sidebar, footer, checkout and printable receipts; favicon/Apple/PWA/social assets generated from the original.
+- [x] Server-checked QR amount, mandatory private JPEG/PNG/PDF proof, 5 MiB direct signed upload and independent server validation.
+- [x] Pending Verification stays unpaid until authorized owner/manager confirmation; proof download is role/branch restricted.
+- [x] Cash, bank transfer, quantities and configured Klang Valley delivery tests retained.
+- [ ] Explicit production migration/release approval.
+- [ ] Apply 007 to CHIPSTI POS only, then deploy the complete app/assets.
+- [ ] Hosted private upload/download tests, including 5 MiB files, and actual device/QR scan checks.
+- [ ] Separately authorized real merchant payment reconciliation, if desired.
+- [ ] Receipt retention/cleanup and private Storage backup/restore procedure.

@@ -4,7 +4,12 @@ import { shopService, requestBucket, readShopBody } from "@/lib/shop-server";
 export async function POST(request: Request) {
   try {
     const parsed = z
-      .object({ token: z.uuid(), reference: z.string().trim().min(3).max(150) })
+      .object({
+        token: z.uuid(),
+        reference: z.string().trim().min(3).max(150),
+        proof_id: z.uuid().optional(),
+        proof_token: z.uuid().optional(),
+      })
       .safeParse(await readShopBody(request));
     if (!parsed.success)
       return NextResponse.json(

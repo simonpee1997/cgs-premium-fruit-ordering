@@ -1,9 +1,9 @@
 "use client";
 import { useState } from "react";
-import { createBrowserClient } from "@supabase/ssr";
-import { Check, Settings, Upload, RefreshCw, ShoppingBag } from "lucide-react";
+import { Check, Settings, RefreshCw, ShoppingBag } from "lucide-react";
 import { money, parseAmount, localDate } from "@/lib/money";
 import type { AppData } from "@/lib/data";
+import { OFFICIAL_DUITNOW_QR_URL } from "@/lib/brand";
 import type { DeliveryArea } from "@/lib/shop-types";
 const defaults = {
   enabled: false,
@@ -281,6 +281,32 @@ export default function OnlineOrders({
                 </div>
               );
             })}
+            {order.payment_method === "duitnow" && (
+              <div className="panel">
+                <h3>
+                  Touch ’n Go / DuitNow QR ·{" "}
+                  {order.sale_id ? "Paid" : "Pending Verification"}
+                </h3>
+                {order.payment_proof_received ? (
+                  <a
+                    className="secondary"
+                    href={`/api/online-orders/proof?order_id=${order.id}`}
+                  >
+                    Download private payment proof
+                  </a>
+                ) : (
+                  <p>
+                    No payment proof received yet. QR payment cannot be
+                    confirmed until a receipt is uploaded.
+                  </p>
+                )}
+                <p>
+                  Check the merchant payment account before confirming. A
+                  receipt is evidence to review, not automatic proof of
+                  settlement.
+                </p>
+              </div>
+            )}
             <div className="summary-row">
               <span>Delivery</span>
               <strong>{money(order.delivery_fee_sen)}</strong>
@@ -719,47 +745,14 @@ export default function OnlineOrders({
                 <input
                   name="duitnow_qr_url"
                   type="url"
-                  defaultValue={setting.duitnow_qr_url}
+                  value={OFFICIAL_DUITNOW_QR_URL}
+                  readOnly
                 />
               </label>
-              <label>
-                <Upload size={16} />
-                Upload DuitNow QR image
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0],
-                      field = e.currentTarget.form?.elements.namedItem(
-                        "duitnow_qr_url",
-                      ) as HTMLInputElement;
-                    if (!file) return;
-                    setBusy(true);
-                    try {
-                      if (file.size > 5242880)
-                        throw new Error("Maximum image size is 5 MB");
-                      const db = createBrowserClient(
-                        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-                      );
-                      const path = `duitnow-${crypto.randomUUID()}.${file.type.split("/")[1]}`;
-                      const { error } = await db.storage
-                        .from("product-images")
-                        .upload(path, file);
-                      if (error) throw error;
-                      field.value = db.storage
-                        .from("product-images")
-                        .getPublicUrl(path).data.publicUrl;
-                    } catch (e) {
-                      setError(
-                        e instanceof Error ? e.message : "Upload failed",
-                      );
-                    } finally {
-                      setBusy(false);
-                    }
-                  }}
-                />
-              </label>
+              <p>
+                The official merchant-supplied DuitNow QR is included with this
+                release. It is shown unchanged at checkout.
+              </p>
               {error && (
                 <p className="error" role="alert">
                   {error}

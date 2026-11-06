@@ -14,7 +14,7 @@ export function shopService() {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
-export function requestBucket(request: Request) {
+export function requestBucket(request: Request, purpose = "") {
   const salt =
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
   if (!salt) throw new Error("Online ordering is not configured");
@@ -29,7 +29,9 @@ export function requestBucket(request: Request) {
           .split(",")[0]
           .trim()
       : "local-development";
-  return createHmac("sha256", salt).update(address).digest("hex");
+  return createHmac("sha256", salt)
+    .update(purpose ? purpose + ":" + address : address)
+    .digest("hex");
 }
 export async function catalogue(): Promise<Catalogue> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL,

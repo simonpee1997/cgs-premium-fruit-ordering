@@ -88,6 +88,7 @@ beforeAll(async () => {
     "003_metadata.sql",
     "004_online_store.sql",
     "006_delivery_areas.sql",
+    "007_payment_proofs.sql",
   ])
     await db.exec(
       readFileSync("supabase/migrations/" + name, "utf8").replace(

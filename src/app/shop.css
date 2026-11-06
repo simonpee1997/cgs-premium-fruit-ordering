@@ -1338,3 +1338,86 @@
     display: none;
   }
 }
+
+.shop-brand > .chipsti-logo {
+  width: 76px;
+  height: 76px;
+}
+.shop-footer-brand .footer-logo {
+  display: block;
+  margin-bottom: 10px;
+}
+.shop-cart-heading .checkout-logo {
+  width: 64px;
+  height: 64px;
+}
+.shop-cart-heading > div {
+  flex: 1;
+}
+.shop-qr {
+  width: min(100%, 300px);
+  height: auto;
+  object-fit: contain;
+  border-radius: 0;
+}
+@media (max-width: 600px) {
+  .shop-brand {
+    gap: 8px;
+  }
+  .shop-brand > .chipsti-logo {
+    width: 56px;
+    height: 56px;
+  }
+  .shop-cart-heading .checkout-logo {
+    width: 52px;
+    height: 52px;
+  }
+}
+
+.shop-qr-payment {
+  padding: 18px;
+  margin: 20px 0;
+  border: 1px solid var(--shop-line);
+  border-radius: 12px;
+  background: var(--shop-cream);
+}
+.shop-qr-payment h3 {
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+.shop-qr-payment p,
+.shop-qr-payment li,
+.payment-proof-upload p {
+  font-size: 12px;
+  line-height: 1.7;
+}
+.shop-qr-payment ol {
+  padding-left: 20px;
+  margin: 16px 0;
+}
+.shop-pay-amount strong {
+  font-size: 22px;
+  color: var(--shop-ink);
+}
+.shop-qr-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 12px 0;
+  font-size: 12px;
+}
+.payment-proof-upload {
+  padding: 16px 0;
+  border-top: 1px solid var(--shop-line);
+  margin-top: 18px;
+}
+.payment-proof-upload input[type="file"] {
+  max-width: 100%;
+  font-size: 11px;
+}
+.shop-receipt-identity > .receipt-logo {
+  display: block;
+  margin: 0 auto 12px;
+  width: 90px;
+  height: 90px;
+}

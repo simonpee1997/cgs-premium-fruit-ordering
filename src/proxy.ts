@@ -27,5 +27,6 @@ export const config = {
     "/api/action",
     "/api/data",
     "/api/export",
+    "/api/online-orders/:path*",
   ],
 };

@@ -228,7 +228,8 @@ test("admin confirms funds explicitly before recording a customer order as paid"
         total_sen: 2300,
         delivery_fee_sen: 500,
         tax_sen: 0,
-        payment_method: "bank",
+        payment_method: "duitnow",
+        payment_proof_received: true,
         payment_reference: "TEST-REF",
         sale_id: null as string | null,
         tracking_token: "60000000-0000-0000-0000-000000000001",
@@ -270,6 +271,10 @@ test("admin confirms funds explicitly before recording a customer order as paid"
     .click();
   await page.getByRole("button", { name: "Review order" }).click();
   const dialog = page.getByRole("dialog", { name: "Review online order" });
+  await expect(
+    dialog.getByRole("link", { name: "Download private payment proof" }),
+  ).toHaveAttribute("href", `/api/online-orders/proof?order_id=${id}`);
+
   await expect(
     dialog.getByLabel("Verified bank / payment reference"),
   ).toHaveValue("TEST-REF");

@@ -1480,3 +1480,37 @@ html[data-theme="dark"] .brand-mark {
   font-size: 12px;
   padding: 0 6px;
 }
+
+.chipsti-logo {
+  width: 82px;
+  height: 82px;
+  object-fit: contain;
+  flex-shrink: 0;
+  border-radius: 8px;
+}
+.login-art > .chipsti-logo {
+  width: 130px;
+  height: 130px;
+  margin-bottom: 22px;
+}
+.brand > .chipsti-logo {
+  width: 64px;
+  height: 64px;
+}
+.receipt .receipt-logo {
+  display: block;
+  width: 82px;
+  height: 82px;
+  margin: 0 auto 8px;
+}
+.footer-logo {
+  width: 58px;
+  height: 58px;
+  vertical-align: middle;
+}
+@media print {
+  .receipt .receipt-logo {
+    display: block !important;
+    print-color-adjust: exact;
+  }
+}

@@ -1,4 +1,8 @@
 "use client";
+import PaymentProofUpload from "@/components/payment-proof-upload";
+import type { UploadedProof } from "@/lib/payment-proof";
+import { OFFICIAL_DUITNOW_QR } from "@/lib/brand";
+import BrandLogo from "@/components/brand-logo";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -29,7 +33,8 @@ export default function OrderStatus({ token }: { token: string }) {
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true),
     [busy, setBusy] = useState(false),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(""),
+    [proof, setProof] = useState<UploadedProof | null>(null);
   const load = useCallback(async () => {
     try {
       const r = await fetch(
@@ -65,7 +70,7 @@ export default function OrderStatus({ token }: { token: string }) {
     <div className="shop shop-order-page">
       <header className="shop-header">
         <Link className="shop-brand" href="/">
-          <span className="shop-monogram">C</span>
+          <BrandLogo priority />
           <span>
             CHIPSTI<small>ENTERPRISE</small>
           </span>
@@ -94,10 +99,18 @@ export default function OrderStatus({ token }: { token: string }) {
                 {paid ? <Check size={28} /> : <Clock size={28} />}
               </div>
               <span className="shop-eyebrow">{order.order_number}</span>
-              <h1>{labels[order.status] ?? order.status}</h1>
+              <h1>
+                {order.payment_method === "duitnow" &&
+                order.status === "payment_submitted"
+                  ? "Pending Verification"
+                  : (labels[order.status] ?? order.status)}
+              </h1>
               <p>
                 {pending
-                  ? "Thank you for your order. Payment has not yet been confirmed."
+                  ? order.payment_method === "duitnow" &&
+                    order.payment_proof_received
+                    ? "Thank you for ordering from CHIPSTI! Your order has been received. We will verify your payment and confirm your order shortly."
+                    : "Thank you for your order. Payment has not yet been confirmed."
                   : order.status === "refunded"
                     ? "Your order has been fully refunded. The original payment and refund totals are shown below."
                     : paid
@@ -137,24 +150,45 @@ export default function OrderStatus({ token }: { token: string }) {
                     </p>
                   </div>
                 ) : (
-                  order.store.duitnow_qr_url && (
+                  <>
+                    <h3>Pay CHIPSTI ENTERPRISE</h3>
+                    <p>
+                      Amount to pay: <strong>{money(order.total_sen)}</strong>
+                    </p>
                     <Image
                       className="shop-qr"
-                      src={order.store.duitnow_qr_url}
+                      src={OFFICIAL_DUITNOW_QR}
                       alt="Store DuitNow payment QR"
-                      width={260}
-                      height={260}
+                      width={760}
+                      height={1080}
                       unoptimized
                       referrerPolicy="no-referrer"
                     />
-                  )
+                    <div className="shop-qr-links">
+                      <a
+                        href={OFFICIAL_DUITNOW_QR}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        View original QR
+                      </a>
+                      <a
+                        href={OFFICIAL_DUITNOW_QR}
+                        download="CHIPSTI-ENTERPRISE-DuitNow-QR.jpeg"
+                      >
+                        Save QR image
+                      </a>
+                    </div>
+                  </>
                 )}
                 <p>
                   Use <strong>{order.order_number}</strong> as the transfer
                   note. Check the recipient’s name and amount in your bank app
                   before paying.
                 </p>
-                {order.payment_reference ? (
+                {order.payment_reference &&
+                (order.payment_method !== "duitnow" ||
+                  order.payment_proof_received) ? (
                   <div className="shop-order-notice">
                     <Check size={18} />
                     Reference submitted: {order.payment_reference}. Our team
@@ -164,6 +198,14 @@ export default function OrderStatus({ token }: { token: string }) {
                   <form
                     onSubmit={async (e) => {
                       e.preventDefault();
+                      if (
+                        order.payment_method === "duitnow" &&
+                        !proof &&
+                        !order.payment_proof_received
+                      ) {
+                        setError("Upload payment proof before submitting.");
+                        return;
+                      }
                       const form = new FormData(e.currentTarget);
                       setBusy(true);
                       setError("");
@@ -174,6 +216,9 @@ export default function OrderStatus({ token }: { token: string }) {
                           body: JSON.stringify({
                             token,
                             reference: form.get("reference"),
+                            ...(proof
+                              ? { proof_id: proof.id, proof_token: proof.token }
+                              : {}),
                           }),
                         });
                         const data = await response.json();
@@ -191,16 +236,33 @@ export default function OrderStatus({ token }: { token: string }) {
                       }
                     }}
                   >
+                    {order.payment_method === "duitnow" &&
+                      !order.payment_proof_received && (
+                        <PaymentProofUpload
+                          totalSen={order.total_sen}
+                          disabled={busy}
+                          onUploaded={setProof}
+                        />
+                      )}
                     <label>
                       Bank or DuitNow transaction reference
                       <input
                         name="reference"
+                        defaultValue={order.payment_reference ?? ""}
                         minLength={3}
                         maxLength={150}
                         required
                       />
                     </label>
-                    <button className="shop-primary" disabled={busy}>
+                    <button
+                      className="shop-primary"
+                      disabled={
+                        busy ||
+                        (order.payment_method === "duitnow" &&
+                          !order.payment_proof_received &&
+                          !proof)
+                      }
+                    >
                       {busy ? "Submitting…" : "I have made payment"}
                       <ArrowRight size={16} />
                     </button>
@@ -210,6 +272,7 @@ export default function OrderStatus({ token }: { token: string }) {
             )}
             <section className="shop-order-panel shop-customer-receipt">
               <div className="shop-receipt-identity">
+                <BrandLogo className="receipt-logo" />
                 <h2>CHIPSTI ENTERPRISE</h2>
                 <p>SSM: 202603232290 (RA0139100-V)</p>
                 <strong>{order.receipt_number || order.order_number}</strong>
@@ -261,6 +324,18 @@ export default function OrderStatus({ token }: { token: string }) {
                   <span>Tax</span>
                   <strong>{money(order.tax_sen)}</strong>
                 </div>
+                {order.payment_method === "duitnow" && (
+                  <div>
+                    <span>Payment status</span>
+                    <strong>
+                      {paid
+                        ? "Paid"
+                        : pending
+                          ? "Pending Verification"
+                          : labels[order.status]}
+                    </strong>
+                  </div>
+                )}
                 <div className="shop-grand-total">
                   <span>Total</span>
                   <strong>{money(order.total_sen)}</strong>
@@ -296,7 +371,7 @@ export default function OrderStatus({ token }: { token: string }) {
                   ? "Cash on collection"
                   : order.payment_method === "bank"
                     ? "Bank transfer"
-                    : "DuitNow QR"}
+                    : "Touch ’n Go / DuitNow QR"}
                 <br />
                 {paid
                   ? "Cashier-confirmed payment"

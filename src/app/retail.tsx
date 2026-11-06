@@ -1,4 +1,5 @@
 "use client";
+import BrandLogo from "@/components/brand-logo";
 import OnlineOrders from "@/components/online-orders";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -428,7 +429,7 @@ export default function Retail({ configured }: { configured: boolean }) {
     return (
       <main className="login">
         <div className="login-art">
-          <div className="brand-mark">C</div>
+          <BrandLogo className="staff-logo" priority />
           <span className="eyebrow">CHIPSTI ENTERPRISE</span>
           <h1>
             A little more
@@ -528,7 +529,7 @@ export default function Retail({ configured }: { configured: boolean }) {
     <div className="workspace">
       <aside className={menu ? "sidebar expanded" : "sidebar"}>
         <div className="brand">
-          <div className="brand-mark">C</div>
+          <BrandLogo className="staff-logo" priority />
           <div>
             CHIPSTI<span>RETAIL ATELIER</span>
           </div>
@@ -2267,7 +2268,8 @@ export default function Retail({ configured }: { configured: boolean }) {
             <OnlineOrders data={data} refresh={refresh} />
           )}
           <footer>
-            CHIPSTI ENTERPRISE <span>SSM 202603232290 (RA0139100-V)</span>
+            <BrandLogo className="footer-logo" /> CHIPSTI ENTERPRISE{" "}
+            <span>SSM 202603232290 (RA0139100-V)</span>
           </footer>
         </div>
       </div>
@@ -2660,6 +2662,7 @@ export default function Retail({ configured }: { configured: boolean }) {
               </button>
             </div>
             <article className="receipt">
+              <BrandLogo className="receipt-logo" />
               <h2>CHIPSTI ENTERPRISE</h2>
               <p>SSM: 202603232290 (RA0139100-V)</p>
               <hr />

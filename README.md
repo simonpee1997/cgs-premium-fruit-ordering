@@ -10,6 +10,10 @@ The updated application serves the public collection and online checkout at `/`,
 
 The public shop includes synchronized product-card quantity selectors and owner-configured exact-postcode areas for free delivery at RM300 within Klang Valley. See [setup and verification](docs/QUANTITIES-AND-DELIVERY.md). Migration `006_delivery_areas.sql` is required before deploying this release; new delivery areas start empty, and the existing flat fee remains the fallback. Apply only with explicit production approval. No new environment variables or dependencies are required.
 
+## Official branding and DuitNow proofs
+
+The koala-and-chip logo replaces the C monogram, and online QR checkout uses the original merchant-supplied DuitNow image with mandatory private receipt uploads and owner/manager verification. See [branding, private upload architecture and migration 007 rollout](docs/BRANDING-AND-DUITNOW.md). No new environment variables or dependencies are needed. Production migration and deployment require explicit owner approval.
+
 ## Run locally
 
 Requires Node.js 24 (.nvmrc and Vercel runtime are pinned to 24.x), npm, and a Supabase project. Use the existing checkout; cloud tasks are isolated already, so a worktree is unnecessary.

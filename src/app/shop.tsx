@@ -1,4 +1,8 @@
 "use client";
+import PaymentProofUpload from "@/components/payment-proof-upload";
+import { OFFICIAL_DUITNOW_QR } from "@/lib/brand";
+import type { UploadedProof } from "@/lib/payment-proof";
+import BrandLogo from "@/components/brand-logo";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -37,7 +41,16 @@ export default function Shop() {
     [busy, setBusy] = useState(false),
     [agreed, setAgreed] = useState(false),
     [postcode, setPostcode] = useState(""),
-    [address, setAddress] = useState("");
+    [address, setAddress] = useState(""),
+    [proof, setProof] = useState<(UploadedProof & { context: string }) | null>(
+      null,
+    ),
+    [serverQuote, setServerQuote] = useState<{
+      context: string;
+      total_sen: number;
+      error: string;
+    } | null>(null),
+    [quoteAttempt, setQuoteAttempt] = useState(0);
   const key = useRef("");
   const load = useCallback(async () => {
     try {
@@ -107,6 +120,65 @@ export default function Shop() {
   const fee = quote.fee_sen,
     tax = Math.floor(((subtotal + fee) * (store?.tax_bps ?? 0) + 5000) / 10000),
     total = subtotal + fee + tax;
+  const proofContext = JSON.stringify({
+    items: cart,
+    fulfillment,
+    postcode: postcode.trim(),
+    address: address.trim(),
+    total,
+  });
+  const qrVerified =
+    serverQuote?.context === proofContext &&
+    !serverQuote.error &&
+    serverQuote.total_sen === total;
+  const validProof =
+    proof?.context === proofContext && qrVerified ? proof : null;
+  useEffect(() => {
+    if (method !== "duitnow" || !checkout) return;
+    const context = JSON.parse(proofContext);
+    if (
+      !context.items.length ||
+      (context.fulfillment === "delivery" &&
+        (!/^\d{5}$/.test(context.postcode) || context.address.length < 10))
+    )
+      return;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const { total: estimated, ...payload } = context;
+        const response = await fetch("/api/shop/quote", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+        const checked = await response.json();
+        if (!response.ok) throw new Error(checked.error);
+        if (checked.total_sen !== estimated)
+          throw new Error(
+            "Prices or delivery charges changed. Refresh the collection before paying.",
+          );
+        if (!controller.signal.aborted)
+          setServerQuote({
+            context: proofContext,
+            total_sen: checked.total_sen,
+            error: "",
+          });
+      } catch (e) {
+        if (!controller.signal.aborted)
+          setServerQuote({
+            context: proofContext,
+            total_sen: 0,
+            error:
+              e instanceof Error ? e.message : "Unable to check order amount",
+          });
+      }
+    }, 350);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [method, checkout, proofContext, quoteAttempt]);
   const categories = [
     "All",
     ...new Set(products.map((p) => p.category || "Collection")),
@@ -125,7 +197,7 @@ export default function Shop() {
       ? [{ id: "cash", label: "Pay cash on collection" }]
       : []),
     ...(canBank ? [{ id: "bank", label: "Bank transfer" }] : []),
-    ...(canQR ? [{ id: "duitnow", label: "DuitNow QR" }] : []),
+    ...(canQR ? [{ id: "duitnow", label: "Touch ’n Go / DuitNow QR" }] : []),
   ];
   function quantity(id: string, delta: number) {
     const p = products.find((p) => p.id === id);
@@ -352,7 +424,7 @@ export default function Shop() {
       </div>
       <header className="shop-header">
         <Link href="/" className="shop-brand">
-          <span className="shop-monogram">C</span>
+          <BrandLogo priority />
           <span>
             CHIPSTI<small>ENTERPRISE</small>
           </span>
@@ -619,6 +691,7 @@ export default function Shop() {
       </main>
       <footer className="shop-footer">
         <div className="shop-footer-brand">
+          <BrandLogo className="footer-logo" />
           CHIPSTI ENTERPRISE<small>SSM: 202603232290 (RA0139100-V)</small>
         </div>
         <span>Malaysia · MYR</span>
@@ -636,6 +709,7 @@ export default function Shop() {
             aria-label={checkout ? "Online checkout" : "Your basket"}
           >
             <div className="shop-cart-heading">
+              <BrandLogo className="checkout-logo" />
               <div>
                 <span className="shop-eyebrow">SOMETHING GOOD AWAITS</span>
                 <h2>{checkout ? "Checkout" : "Your basket"}</h2>
@@ -707,6 +781,12 @@ export default function Shop() {
                     onSubmit={async (e) => {
                       e.preventDefault();
                       if (!agreed) return;
+                      if (method === "duitnow" && !validProof) {
+                        setError(
+                          "Upload payment proof for the current order total first.",
+                        );
+                        return;
+                      }
                       const form = new FormData(e.currentTarget);
                       setBusy(true);
                       setError("");
@@ -721,6 +801,14 @@ export default function Shop() {
                             items: cart,
                             fulfillment,
                             payment_method: method,
+                            ...(method === "duitnow"
+                              ? {
+                                  proof_id: validProof?.id,
+                                  proof_token: validProof?.token,
+                                  payment_reference:
+                                    form.get("payment_reference") || "",
+                                }
+                              : {}),
                             name: form.get("name"),
                             phone: form.get("phone"),
                             email: form.get("email"),
@@ -804,6 +892,112 @@ export default function Shop() {
                           ? "Pay when you collect. Your order will be marked paid only after our team receives payment."
                           : "Payment instructions will appear after placing your order. Transfers are manually verified by our team."}
                       </p>
+                      {method === "duitnow" && (
+                        <section
+                          className="shop-qr-payment"
+                          aria-label="Touch 'n Go / DuitNow QR payment"
+                        >
+                          <h3>Pay CHIPSTI ENTERPRISE</h3>
+                          <p className="shop-pay-amount">
+                            Amount to pay: <strong>{money(total)}</strong>
+                          </p>
+                          {!qrVerified ? (
+                            <div role="status">
+                              <p>
+                                {serverQuote?.context === proofContext &&
+                                serverQuote.error
+                                  ? serverQuote.error
+                                  : fulfillment === "delivery" &&
+                                      !quote.confirmed
+                                    ? "Enter your complete delivery address above to check the amount before paying."
+                                    : "Checking the exact order amount with our server…"}
+                              </p>
+                              <button
+                                type="button"
+                                className="shop-secondary"
+                                onClick={() => setQuoteAttempt((n) => n + 1)}
+                              >
+                                Check amount again
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <Image
+                                src={OFFICIAL_DUITNOW_QR}
+                                alt="Official CHIPSTI ENTERPRISE DuitNow QR — Touch 'n Go eWallet"
+                                width={760}
+                                height={1080}
+                                className="shop-qr"
+                                unoptimized
+                              />
+                              <div className="shop-qr-links">
+                                <a
+                                  href={OFFICIAL_DUITNOW_QR}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  View original QR
+                                </a>
+                                <a
+                                  href={OFFICIAL_DUITNOW_QR}
+                                  download="CHIPSTI-ENTERPRISE-DuitNow-QR.jpeg"
+                                >
+                                  Save QR image
+                                </a>
+                              </div>
+                              <ol>
+                                <li>
+                                  Open Touch ’n Go eWallet or a supported
+                                  Malaysian banking app.
+                                </li>
+                                <li>
+                                  Scan the QR code and confirm the recipient is
+                                  CHIPSTI ENTERPRISE.
+                                </li>
+                                <li>Pay the exact order amount shown above.</li>
+                                <li>Save the successful payment receipt.</li>
+                                <li>Upload the receipt below.</li>
+                                <li>
+                                  Submit your order for manual payment
+                                  verification.
+                                </li>
+                              </ol>
+                              <p>
+                                On this phone, save the QR image and use your
+                                payment app’s scan-from-gallery option if
+                                supported.
+                              </p>
+                              {proof && !validProof && (
+                                <p className="shop-error">
+                                  Your basket or delivery details changed.
+                                  Upload proof for the updated order total.
+                                </p>
+                              )}
+                              <PaymentProofUpload
+                                key={proofContext}
+                                totalSen={total}
+                                disabled={busy}
+                                onUploaded={(value) =>
+                                  setProof(
+                                    value
+                                      ? { ...value, context: proofContext }
+                                      : null,
+                                  )
+                                }
+                              />
+                            </>
+                          )}
+                          <label>
+                            Payment reference (optional)
+                            <input name="payment_reference" maxLength={150} />
+                          </label>
+                          <p>
+                            <strong>Pending Verification:</strong> a receipt
+                            upload does not confirm payment. Our team will check
+                            the merchant payment account.
+                          </p>
+                        </section>
+                      )}
                       <label>
                         Order notes (optional)
                         <textarea name="notes" maxLength={1000} />
@@ -828,9 +1022,10 @@ export default function Shop() {
                         my contact details to process this order.
                       </label>
                       <p className="shop-checkout-note">
-                        Stock is reserved for 24 hours while your order awaits
-                        payment confirmation. Save your private order link to
-                        check its status. We do not enroll you in marketing.
+                        Stock is reserved for 24 hours after your order is
+                        submitted, while it awaits payment confirmation. Save
+                        your private order link to check its status. We do not
+                        enroll you in marketing.
                       </p>
                       {error && (
                         <p className="shop-error" role="alert">
@@ -844,6 +1039,7 @@ export default function Shop() {
                           !method ||
                           !agreed ||
                           total <= 0 ||
+                          (method === "duitnow" && !validProof) ||
                           (fulfillment === "delivery" &&
                             (!quote.confirmed || !quote.deliverable))
                         }

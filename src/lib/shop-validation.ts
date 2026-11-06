@@ -50,6 +50,9 @@ export const onlineOrderSchema = z
     postcode: z.string().trim().max(5).default(""),
     notes: z.string().trim().max(1000).default(""),
     payment_method: z.enum(["cash", "bank", "duitnow"]),
+    proof_id: id.optional(),
+    proof_token: id.optional(),
+    payment_reference: z.string().trim().max(150).optional(),
     website: z.string().max(0).default(""),
     items: z
       .array(
@@ -63,6 +66,12 @@ export const onlineOrderSchema = z
   })
   .strict()
   .superRefine((v, ctx) => {
+    if (v.payment_method === "duitnow" && (!v.proof_id || !v.proof_token))
+      ctx.addIssue({
+        code: "custom",
+        path: ["proof_id"],
+        message: "Upload a payment proof before submitting a QR order",
+      });
     if (v.fulfillment === "delivery") {
       if (v.address.length < 10)
         ctx.addIssue({
@@ -165,3 +174,30 @@ export const onlineManagementSchema = z.discriminatedUnion("operation", [
     status: z.enum(["ready", "dispatched", "completed"]),
   }),
 ]);
+
+export const onlineQuoteSchema = z
+  .object({
+    items: z
+      .array(
+        z.object({
+          product_id: z.uuid(),
+          quantity: z.number().int().min(1).max(100),
+        }),
+      )
+      .min(1)
+      .max(50),
+    fulfillment: z.enum(["pickup", "delivery"]),
+    address: z.string().trim().max(1000),
+    postcode: z.string().trim().max(5),
+  })
+  .strict()
+  .superRefine((v, ctx) => {
+    if (
+      v.fulfillment === "delivery" &&
+      (v.address.length < 10 || !/^\d{5}$/.test(v.postcode))
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "Enter a complete delivery address and five-digit postcode",
+      });
+  });
