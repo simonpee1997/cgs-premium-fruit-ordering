@@ -203,7 +203,7 @@ test("QR order requires a private receipt and is shown as Pending Verification, 
     page.getByRole("heading", { name: "Payment confirmed", exact: true }),
   ).toHaveCount(0);
   await expect(
-    page.getByText(/Payment method: Touch ’n Go \/ DuitNow QR/),
+    page.getByText(/Payment method \/ 付款方式: Touch ’n Go \/ DuitNow QR/),
   ).toBeVisible();
 });
 test("invalid and oversized uploads are rejected before private upload requests", async ({

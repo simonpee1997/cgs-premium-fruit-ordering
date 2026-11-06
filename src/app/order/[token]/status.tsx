@@ -15,6 +15,7 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { money, localDate } from "@/lib/money";
+import { orderItemEnglishName } from "@/lib/order-item-name";
 import type { PublicOrder } from "@/lib/shop-types";
 import "../../shop.css";
 const labels: Record<string, string> = {
@@ -282,100 +283,115 @@ export default function OrderStatus({ token }: { token: string }) {
                     : localDate(order.created_at)}
                 </p>
                 {paid && order.cashier_name && (
-                  <p>Cashier: {order.cashier_name}</p>
+                  <p>Cashier / 收银员: {order.cashier_name}</p>
                 )}
                 <p>
                   {paid
-                    ? "Payment receipt"
-                    : "Order summary · not a payment receipt"}
+                    ? "Payment receipt / 付款收据"
+                    : "Order summary · not a payment receipt / 订单摘要 · 非付款收据"}
                 </p>
               </div>
               <hr />
-              {order.items.map((i) => (
-                <div className="shop-receipt-line" key={i.sku}>
-                  <div>
-                    <strong>{i.name}</strong>
-                    <small>
-                      {i.sku} · {i.quantity} × {money(i.unit_price_sen)}
-                    </small>
-                    {(i.refunded_quantity ?? 0) > 0 && (
-                      <small>Refunded quantity: {i.refunded_quantity}</small>
-                    )}
+              {order.items.map((i) => {
+                const englishName = orderItemEnglishName(i);
+                return (
+                  <div className="shop-receipt-line" key={i.sku}>
+                    <div>
+                      <strong lang={englishName ? "en" : undefined}>
+                        {englishName || i.name}
+                      </strong>
+                      {englishName && englishName !== i.name && (
+                        <small lang="zh">{i.name}</small>
+                      )}
+                      <small>
+                        {i.sku} · {i.quantity} × {money(i.unit_price_sen)}
+                      </small>
+                      {(i.refunded_quantity ?? 0) > 0 && (
+                        <small>
+                          Refunded quantity / 已退款数量: {i.refunded_quantity}
+                        </small>
+                      )}
+                    </div>
+                    <span>{money(i.total_sen)}</span>
                   </div>
-                  <span>{money(i.total_sen)}</span>
-                </div>
-              ))}
+                );
+              })}
               <div className="shop-totals">
                 <div>
-                  <span>Products</span>
+                  <span>Products / 商品小计</span>
                   <strong>{money(order.subtotal_sen)}</strong>
                 </div>
                 <div>
-                  <span>Delivery</span>
+                  <span>Delivery / 配送费</span>
                   <strong>{money(order.delivery_fee_sen)}</strong>
                 </div>
                 {(order.delivery_discount_sen ?? 0) > 0 && (
                   <div>
-                    <span>Free delivery saving (included above)</span>
+                    <span>
+                      Free delivery saving (included above) /
+                      免运费优惠（已扣除）
+                    </span>
                     <strong>−{money(order.delivery_discount_sen ?? 0)}</strong>
                   </div>
                 )}
                 <div>
-                  <span>Tax</span>
+                  <span>Tax / 税费</span>
                   <strong>{money(order.tax_sen)}</strong>
                 </div>
                 {order.payment_method === "duitnow" && (
                   <div>
-                    <span>Payment status</span>
+                    <span>Payment status / 付款状态</span>
                     <strong>
                       {paid
-                        ? "Paid"
+                        ? "Paid / 已付款"
                         : pending
-                          ? "Pending Verification"
+                          ? "Pending Verification / 待核实"
                           : labels[order.status]}
                     </strong>
                   </div>
                 )}
                 <div className="shop-grand-total">
-                  <span>Total</span>
+                  <span>Total / 总计</span>
                   <strong>{money(order.total_sen)}</strong>
                 </div>
                 <div>
-                  <span>{paid ? "Amount paid" : "Amount due"}</span>
+                  <span>
+                    {paid ? "Amount paid / 已付金额" : "Amount due / 应付金额"}
+                  </span>
                   <strong>{money(order.total_sen)}</strong>
                 </div>
                 {paid && (
                   <>
                     <div>
-                      <span>Amount received</span>
+                      <span>Amount received / 实收金额</span>
                       <strong>
                         {money(order.tendered_sen ?? order.total_sen)}
                       </strong>
                     </div>
                     <div>
-                      <span>Change</span>
+                      <span>Change / 找零</span>
                       <strong>{money(order.change_sen ?? 0)}</strong>
                     </div>
                   </>
                 )}
                 {order.refunded_sen > 0 && (
                   <div>
-                    <span>Refunded</span>
+                    <span>Refunded / 已退款</span>
                     <strong>{money(order.refunded_sen)}</strong>
                   </div>
                 )}
               </div>
               <p>
-                Payment method:{" "}
+                Payment method / 付款方式:{" "}
                 {order.payment_method === "cash"
-                  ? "Cash on collection"
+                  ? "Cash on collection / 取货时付款"
                   : order.payment_method === "bank"
-                    ? "Bank transfer"
-                    : "Touch ’n Go / DuitNow QR"}
+                    ? "Bank transfer / 银行转账"
+                    : "Touch ’n Go / DuitNow QR / 扫码付款"}
                 <br />
                 {paid
-                  ? "Cashier-confirmed payment"
-                  : "Payment verification pending"}
+                  ? "Cashier-confirmed payment / 收银员已确认付款"
+                  : "Payment verification pending / 付款待核实"}
               </p>
               <div className="shop-receipt-actions">
                 <button
@@ -383,7 +399,9 @@ export default function OrderStatus({ token }: { token: string }) {
                   onClick={() => window.print()}
                 >
                   <Printer size={16} />
-                  {paid ? "Print receipt / save PDF" : "Print order summary"}
+                  {paid
+                    ? "Print receipt / save PDF / 打印收据或保存 PDF"
+                    : "Print order summary / 打印订单摘要"}
                 </button>
               </div>
             </section>

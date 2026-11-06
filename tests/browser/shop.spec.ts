@@ -137,6 +137,15 @@ test("customer can request delivery, see exact fees and submit a manual payment 
   await expect(
     page.getByRole("heading", { name: "Order received", exact: true }),
   ).toBeVisible();
+  await expect(page.locator(".shop-customer-receipt")).toContainText(
+    "Original Golden Arrowhead",
+  );
+  await expect(page.locator(".shop-customer-receipt")).toContainText(
+    "原味黄金呀菇",
+  );
+  await expect(page.locator(".shop-customer-receipt")).toContainText(
+    "Total / 总计",
+  );
   expect(submitted?.expected_total_sen).toBe(2438);
   expect(submitted?.fulfillment).toBe("delivery");
   expect(submitted).not.toHaveProperty("unit_price_sen");
