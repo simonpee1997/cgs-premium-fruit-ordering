@@ -1718,3 +1718,348 @@
     max-height: 30dvh;
   }
 }
+
+/* Product-first storefront. Original merchant branding and product assets stay intact. */
+.shop-header {
+  height: 78px;
+  padding: 0 28px;
+  gap: 20px;
+}
+.shop-header .shop-brand .chipsti-logo {
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+}
+.shop-header .shop-brand {
+  font-size: 20px;
+  letter-spacing: 2px;
+  gap: 9px;
+}
+.shop-header nav {
+  gap: 28px;
+}
+.shop-header nav a {
+  font-size: 13px;
+  color: #655546;
+}
+.shop main > .shop-delivery-banner {
+  max-width: 1784px;
+  margin: 16px auto 0;
+  padding: 12px 18px;
+  border-radius: 9px;
+  font-size: 13px;
+  min-height: 0;
+  gap: 12px;
+}
+.shop-delivery-banner small {
+  display: inline;
+  margin-left: 16px;
+  color: #75634f;
+  font-size: 11px;
+}
+.shop-shopping-layout .shop-collection {
+  padding-top: 20px;
+}
+.shop-section-heading {
+  margin-bottom: 14px;
+  gap: 18px;
+}
+.shop-section-heading h1 {
+  font:
+    400 30px Georgia,
+    serif;
+  letter-spacing: -0.7px;
+  margin: 0;
+}
+.shop-section-heading .shop-search {
+  width: min(340px, 50%);
+  background: var(--shop-paper);
+}
+.shop-search input {
+  font-size: 13px;
+  min-height: 44px;
+}
+.shop-categories {
+  margin: 0 0 18px;
+  padding-bottom: 0;
+  gap: 8px;
+}
+.shop-categories button {
+  font-size: 12px;
+  min-height: 42px;
+  padding: 9px 14px;
+}
+.shop-shopping-layout .shop-grid {
+  gap: 16px;
+}
+.shop-shopping-layout .shop-product-image {
+  height: auto;
+  aspect-ratio: 1.15;
+  min-height: 0;
+}
+.shop-shopping-layout .shop-product-image > img {
+  height: 100%;
+  width: 100%;
+  object-fit: contain;
+}
+.shop-shopping-layout .shop-mini-bag {
+  width: 45%;
+  height: 72%;
+  max-height: 180px;
+  margin: auto;
+}
+.shop-shopping-layout .shop-mini-bag > span {
+  font-size: 12px;
+}
+.shop-shopping-layout .shop-product-info {
+  padding: 15px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.shop-shopping-layout .shop-product {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.shop-shopping-layout .shop-product-info > small {
+  font-size: 10px;
+  margin-bottom: 8px;
+}
+.shop-shopping-layout .shop-product-info h3 {
+  font:
+    600 15px/1.45 Arial,
+    sans-serif;
+  min-height: 0;
+  margin: 0 0 6px;
+  overflow-wrap: anywhere;
+}
+.shop-shopping-layout .shop-product-info p[lang="zh"] {
+  font-size: 12px;
+  line-height: 1.5;
+  min-height: 0;
+  margin: 0 0 14px;
+}
+.shop-shopping-layout .shop-product-purchase {
+  margin-top: auto;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.shop-shopping-layout .shop-product-info strong {
+  font-size: 14px;
+}
+.shop-shopping-layout .shop-card-quantity {
+  gap: 0;
+}
+.shop-shopping-layout .shop-card-quantity button {
+  min-width: 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+}
+.shop-shopping-layout .shop-card-quantity output {
+  min-width: 28px;
+  font-size: 13px;
+}
+.shop-shopping-layout .shop-product-description {
+  font-size: 11px;
+  margin: 0;
+  padding: 0 12px 12px;
+  line-height: 1.5;
+}
+.shop-cart-shell {
+  margin-top: 20px;
+}
+.shop-cart-shell.is-open .shop-cart-heading > .shop-icon {
+  display: flex;
+}
+.shop-help {
+  max-width: 1784px;
+  padding: 28px 0;
+  margin: 28px auto;
+  gap: 28px;
+  border-top: 1px solid var(--shop-line);
+}
+.shop-help h3 {
+  font-size: 18px;
+  margin: 10px 0;
+}
+.shop-help p {
+  font-size: 12px;
+  margin: 0;
+}
+.shop-contact-phone {
+  display: inline-block;
+  color: #613a25;
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+.shop-about {
+  max-width: 760px;
+  margin: 65px auto;
+  padding: 0 24px;
+}
+.shop-about h1 {
+  font:
+    400 44px/1.2 Georgia,
+    serif;
+  max-width: 650px;
+  margin: 16px 0 24px;
+}
+.shop-about p {
+  font-size: 16px;
+  margin: 22px 0;
+}
+.shop-about hr {
+  margin-top: 45px;
+  border: 0;
+  border-top: 1px solid var(--shop-line);
+}
+@media (min-width: 1800px) {
+  .shop-shopping-layout .shop-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .shop-shopping-layout {
+    grid-template-columns: minmax(0, 1fr) 350px;
+    gap: 24px;
+  }
+}
+@media (min-width: 1051px) and (max-width: 1300px) {
+  .shop-shopping-layout {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 20px;
+  }
+  .shop-shopping-layout .shop-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 1850px) {
+  .shop main > .shop-delivery-banner {
+    margin-left: 28px;
+    margin-right: 28px;
+  }
+  .shop-help {
+    margin-left: 28px;
+    margin-right: 28px;
+  }
+}
+@media (max-width: 1050px) {
+  .shop-cart-shell {
+    margin-top: 0;
+  }
+  .shop-shopping-layout .shop-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .shop-header {
+    height: 72px;
+    padding: 0 22px;
+  }
+  .shop-header nav {
+    display: flex;
+    gap: 18px;
+  }
+  .shop-help {
+    padding: 20px 0;
+  }
+  .shop-cart-shell .shop-cart {
+    padding-bottom: calc(22px + env(safe-area-inset-bottom));
+  }
+}
+@media (max-width: 600px) {
+  .shop-header {
+    height: auto;
+    min-height: 72px;
+    padding: 10px 14px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .shop-header .shop-brand {
+    font-size: 16px;
+  }
+  .shop-header .shop-brand .chipsti-logo {
+    width: 43px;
+    height: 43px;
+  }
+  .shop-header nav {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    gap: 36px;
+    padding: 6px 0 2px;
+  }
+  .shop-header nav a {
+    font-size: 12px;
+  }
+  .shop-basket {
+    padding: 9px 12px;
+  }
+  .shop-basket > span {
+    display: none;
+  }
+  .shop main > .shop-delivery-banner {
+    margin: 12px 14px 0;
+    padding: 10px 12px;
+    font-size: 11px;
+    gap: 8px;
+  }
+  .shop-delivery-banner small {
+    display: block;
+    margin: 5px 0 0;
+    font-size: 10px;
+  }
+  .shop-shopping-layout .shop-collection {
+    padding-top: 16px;
+  }
+  .shop-section-heading {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .shop-section-heading h1 {
+    font-size: 26px;
+  }
+  .shop-section-heading .shop-search {
+    width: 100%;
+  }
+  .shop-categories {
+    margin-bottom: 14px;
+  }
+  .shop-shopping-layout .shop-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .shop-shopping-layout .shop-product-info h3 {
+    font-size: 14px;
+  }
+  .shop-shopping-layout .shop-product-info {
+    padding: 12px 10px;
+  }
+  .shop-shopping-layout .shop-card-quantity button {
+    min-width: 44px;
+    width: 44px;
+    height: 44px;
+  }
+  .shop-help {
+    margin: 24px 18px;
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .shop-about {
+    margin: 35px auto;
+  }
+  .shop-about h1 {
+    font-size: 34px;
+  }
+  .shop-mobile-cart {
+    bottom: calc(10px + env(safe-area-inset-bottom));
+  }
+}
+
+.shop-cart-shell .shop-quantity button,
+.shop-line-actions .shop-icon {
+  min-width: 44px;
+  width: 44px;
+  min-height: 44px;
+  height: 44px;
+}

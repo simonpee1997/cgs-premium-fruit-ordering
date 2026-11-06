@@ -599,7 +599,8 @@ export default function Shop() {
     <div className={`shop-cart-shell${open ? " is-open" : ""}`}>
       <button
         className="shop-cart-backdrop"
-        aria-label="Close basket backdrop"
+        aria-label="Dismiss cart overlay"
+        tabIndex={-1}
         onClick={() => !busy && setOpen(false)}
       />
       <section
@@ -1013,10 +1014,6 @@ export default function Shop() {
   );
   return (
     <div className="shop">
-      <div className="shop-announcement">
-        A little more extraordinary.{" "}
-        <span>Thoughtfully selected in Malaysia.</span>
-      </div>
       <header className="shop-header">
         <Link href="/" className="shop-brand">
           <BrandLogo priority />
@@ -1025,9 +1022,9 @@ export default function Shop() {
           </span>
         </Link>
         <nav>
-          <a href="#collection">The collection</a>
-          <a href="#our-story">Our story</a>
-          <a href="#shop-help">Pickup & delivery</a>
+          <a href="#collection">Products</a>
+          <Link href="/about">About</Link>
+          <a href="#shop-help">Contact</a>
         </nav>
         <button
           className="shop-basket"
@@ -1043,67 +1040,20 @@ export default function Shop() {
         </button>
       </header>
       <main>
-        <section className="shop-hero">
-          <div>
-            <span className="shop-eyebrow">THE CHIPSTI COLLECTION</span>
-            <h1>
-              Small indulgences.
-              <br />
-              <em>Beautiful moments.</em>
-            </h1>
-            <p>
-              Discover delightful snacks, thoughtful gifts and everyday
-              favourites. A collection chosen with care, for you to enjoy and
-              share.
-            </p>
-            <a href="#collection" className="shop-primary">
-              Explore the collection
-              <ArrowRight size={17} />
-            </a>
-            <div className="shop-hero-note">
-              <Leaf size={16} />
-              Good things, thoughtfully selected.
-            </div>
-          </div>
-          <div className="shop-hero-art" aria-hidden="true">
-            <span className="shop-art-circle" />
-            <div className="shop-art-bag rear">
-              <span>CHIPSTI</span>
-              <Leaf size={56} strokeWidth={1} />
-              <small>MADE FOR MOMENTS</small>
-            </div>
-            <div className="shop-art-bag front">
-              <span>CHIPSTI</span>
-              <Leaf size={65} strokeWidth={1} />
-              <small>A LITTLE MORE EXTRAORDINARY</small>
-            </div>
-            <span className="shop-art-caption">THE ART OF A LITTLE TREAT</span>
-          </div>
-        </section>
-        <div className="shop-values">
+        <aside className="shop-delivery-banner">
+          <Truck size={22} aria-hidden="true" />
           <span>
-            <Leaf size={18} />
-            Curated with care
+            <strong>FREE DELIVERY</strong>
+            <span className="shop-banner-divider"> | </span>Spend RM300 &amp;
+            above within Klang Valley
+            <small>After discounts · Eligible configured postcodes only</small>
           </span>
-          <span>
-            <Store size={18} />
-            Convenient store pickup
-          </span>
-          <span>
-            <Truck size={18} />
-            Delivery available
-          </span>
-          <span>
-            <ShieldCheck size={18} />
-            Secure order handling
-          </span>
-        </div>
+        </aside>
         <div className="shop-shopping-layout">
           <section className="shop-collection" id="collection">
             <div className="shop-section-heading">
               <div>
-                <span className="shop-eyebrow">FIND YOUR NEXT FAVOURITE</span>
-                <h2>The collection</h2>
+                <h1>The collection</h1>
               </div>
               <label className="shop-search">
                 <Search size={17} />
@@ -1126,14 +1076,7 @@ export default function Shop() {
                 </button>
               ))}
             </div>
-            <aside className="shop-delivery-banner">
-              <Truck size={22} aria-hidden="true" />
-              <span>
-                <strong>FREE DELIVERY</strong>
-                <span className="shop-banner-divider"> | </span>Spend RM300
-                &amp; above within Klang Valley
-              </span>
-            </aside>
+
             {loading ? (
               <div className="shop-loading" role="status">
                 <RefreshCw size={22} className="spin" />
@@ -1246,21 +1189,6 @@ export default function Shop() {
           </section>
           {cartPanel}
         </div>
-        <section className="shop-story" id="our-story">
-          <Leaf size={37} strokeWidth={1} />
-          <span className="shop-eyebrow">A NOTE FROM CHIPSTI</span>
-          <h2>
-            It’s the little things
-            <br />
-            that make a day.
-          </h2>
-          <p>
-            A favourite snack. A thoughtful gift. Something lovely to share.
-            <br />
-            We bring together products that make everyday moments feel a little
-            more special.
-          </p>
-        </section>
         <section className="shop-help" id="shop-help">
           <div>
             <Store size={23} />
@@ -1280,7 +1208,15 @@ export default function Shop() {
           </div>
           <div>
             <ShieldCheck size={23} />
-            <h3>Order with confidence</h3>
+            <h3>Contact CHIPSTI</h3>
+            {store?.contact_phone && (
+              <a
+                className="shop-contact-phone"
+                href={`tel:${store.contact_phone.replace(/[^+0-9]/g, "")}`}
+              >
+                {store.contact_phone}
+              </a>
+            )}
             <p>
               Order totals are confirmed at checkout. Transfer and DuitNow
               payments are checked by our team before an order is marked paid.
