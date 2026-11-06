@@ -9,6 +9,13 @@ export type ShopProduct = {
   category: string | null;
   available: number;
 };
+export type DeliveryArea = {
+  id: string;
+  name: string;
+  postcodes: string[];
+  standard_fee_sen: number;
+  free_delivery_eligible: boolean;
+};
 export type ShopSettings = {
   name: string;
   ssm: string;
@@ -21,6 +28,7 @@ export type ShopSettings = {
   delivery_fee_sen: number;
   delivery_note: string;
   delivery_postcode_prefixes: string[];
+  delivery_areas?: DeliveryArea[];
   bank_transfer_available: boolean;
   duitnow_available: boolean;
   tax_bps: number;
@@ -37,6 +45,9 @@ export type PublicOrder = {
   postcode: string;
   subtotal_sen: number;
   delivery_fee_sen: number;
+  standard_delivery_fee_sen?: number;
+  delivery_discount_sen?: number;
+  delivery_area_name?: string | null;
   tax_sen: number;
   total_sen: number;
   payment_method: "cash" | "bank" | "duitnow";

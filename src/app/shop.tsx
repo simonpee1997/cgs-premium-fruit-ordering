@@ -18,6 +18,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { money } from "@/lib/money";
+import { deliveryQuote, FREE_DELIVERY_THRESHOLD_SEN } from "@/lib/delivery";
 import type { Catalogue } from "@/lib/shop-types";
 import "./shop.css";
 type Line = { product_id: string; quantity: number };
@@ -34,7 +35,9 @@ export default function Shop() {
     [fulfillment, setFulfillment] = useState<"pickup" | "delivery">("pickup"),
     [method, setMethod] = useState("cash"),
     [busy, setBusy] = useState(false),
-    [agreed, setAgreed] = useState(false);
+    [agreed, setAgreed] = useState(false),
+    [postcode, setPostcode] = useState(""),
+    [address, setAddress] = useState("");
   const key = useRef("");
   const load = useCallback(async () => {
     try {
@@ -42,6 +45,29 @@ export default function Shop() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
       setData(result);
+      setFulfillment((current) =>
+        current === "pickup" && !result.store.allow_pickup
+          ? "delivery"
+          : current === "delivery" && !result.store.allow_delivery
+            ? "pickup"
+            : current,
+      );
+      // A stock refresh must not leave a basket above the latest availability.
+      setCart((lines) =>
+        lines
+          .map((line) => ({
+            ...line,
+            quantity: Math.min(
+              line.quantity,
+              100,
+              result.products.find(
+                (p: { id: string; available: number }) =>
+                  p.id === line.product_id,
+              )?.available ?? 0,
+            ),
+          }))
+          .filter((line) => line.quantity > 0),
+      );
       setError("");
     } catch (e) {
       setError(
@@ -69,7 +95,16 @@ export default function Shop() {
           l.quantity,
       0,
     );
-  const fee = fulfillment === "delivery" ? (store?.delivery_fee_sen ?? 0) : 0,
+  const quote = deliveryQuote({
+    fulfillment,
+    postcode,
+    address,
+    subtotal_sen: subtotal,
+    default_fee_sen: store?.delivery_fee_sen ?? 0,
+    areas: store?.delivery_areas ?? [],
+    postcode_prefixes: store?.delivery_postcode_prefixes ?? [],
+  });
+  const fee = quote.fee_sen,
     tax = Math.floor(((subtotal + fee) * (store?.tax_bps ?? 0) + 5000) / 10000),
     total = subtotal + fee + tax;
   const categories = [
@@ -94,7 +129,7 @@ export default function Shop() {
   ];
   function quantity(id: string, delta: number) {
     const p = products.find((p) => p.id === id);
-    if (!p) return;
+    if (!p || busy || !store?.enabled || p.available <= 0) return;
     key.current = "";
     setCart((lines) => {
       const old = lines.find((l) => l.product_id === id);
@@ -113,7 +148,12 @@ export default function Shop() {
   }
   function beginCheckout() {
     if (!store) return;
-    const f = store.allow_pickup ? "pickup" : "delivery";
+    const f =
+      fulfillment === "pickup" && !store.allow_pickup
+        ? "delivery"
+        : fulfillment === "delivery" && !store.allow_delivery
+          ? "pickup"
+          : fulfillment;
     setFulfillment(f);
     setMethod(
       f === "pickup" && store.allow_cash_pickup
@@ -128,6 +168,182 @@ export default function Shop() {
     setAgreed(false);
     key.current = "";
   }
+  function changeFulfillment(f: "pickup" | "delivery") {
+    setFulfillment(f);
+    setMethod(
+      f === "pickup" && store?.allow_cash_pickup
+        ? "cash"
+        : canBank
+          ? "bank"
+          : canQR
+            ? "duitnow"
+            : "",
+    );
+    key.current = "";
+  }
+  const deliveryFields = (
+    <div className="shop-delivery-fields">
+      <label>
+        How would you like your order?
+        <select
+          aria-label="Fulfillment method"
+          value={fulfillment}
+          disabled={busy}
+          onChange={(e) =>
+            changeFulfillment(e.target.value as "pickup" | "delivery")
+          }
+        >
+          {store?.allow_pickup && (
+            <option value="pickup">Collect from store</option>
+          )}
+          {store?.allow_delivery && <option value="delivery">Delivery</option>}
+        </select>
+      </label>
+      {fulfillment === "pickup" ? (
+        <p className="shop-checkout-note">Pickup: {store?.pickup_address}</p>
+      ) : (
+        <>
+          {!!store?.delivery_areas?.length && (
+            <label>
+              Delivery area
+              <select
+                aria-label="Delivery area"
+                value={quote.area ? postcode : ""}
+                disabled={busy}
+                onChange={(e) => {
+                  setPostcode(e.target.value);
+                  key.current = "";
+                }}
+              >
+                <option value="">Other area / enter postcode</option>
+                {store.delivery_areas.map((area) => (
+                  <optgroup key={area.id} label={area.name}>
+                    {area.postcodes.map((code) => (
+                      <option value={code} key={code}>
+                        {area.name} · {code}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </label>
+          )}
+          <label>
+            Complete Malaysian delivery address
+            <textarea
+              name="address"
+              autoComplete="street-address"
+              minLength={10}
+              maxLength={1000}
+              required
+              disabled={busy}
+              placeholder="Street, unit, city and state"
+              value={address}
+              onChange={(e) => {
+                setAddress(e.target.value);
+                key.current = "";
+              }}
+            />
+          </label>
+          <label>
+            Postcode
+            <input
+              name="postcode"
+              inputMode="numeric"
+              autoComplete="postal-code"
+              pattern="[0-9]{5}"
+              maxLength={5}
+              required
+              disabled={busy}
+              value={postcode}
+              onChange={(e) => {
+                setPostcode(e.target.value);
+                key.current = "";
+              }}
+            />
+          </label>
+          <p className="shop-checkout-note">{store?.delivery_note}</p>
+          <p className="shop-checkout-note">
+            Exact configured postcodes only. Other areas use the standard
+            delivery charge.
+          </p>
+        </>
+      )}
+    </div>
+  );
+  const progressMessage =
+    fulfillment === "pickup"
+      ? "Pickup has no delivery fee."
+      : !quote.confirmed
+        ? "Select your delivery area to check free delivery eligibility."
+        : !quote.deliverable
+          ? "This postcode is outside our delivery area."
+          : !quote.eligible
+            ? "Free delivery is available within Klang Valley only."
+            : quote.remaining_sen > 0
+              ? `Add ${money(quote.remaining_sen)} more to unlock FREE DELIVERY within Klang Valley!`
+              : "Congratulations! You've unlocked FREE DELIVERY!";
+  const deliveryProgress = (
+    <aside className={`shop-delivery-progress${quote.free ? " unlocked" : ""}`}>
+      <p role="status">{progressMessage}</p>
+      {fulfillment === "delivery" && (
+        <>
+          <div
+            role="progressbar"
+            aria-label="Progress towards RM300 product subtotal"
+            aria-valuemin={0}
+            aria-valuemax={FREE_DELIVERY_THRESHOLD_SEN}
+            aria-valuenow={Math.min(
+              FREE_DELIVERY_THRESHOLD_SEN,
+              quote.net_subtotal_sen,
+            )}
+          >
+            <span
+              style={{
+                width: `${Math.min(100, (quote.net_subtotal_sen / FREE_DELIVERY_THRESHOLD_SEN) * 100)}%`,
+              }}
+            />
+          </div>
+          <small>
+            {money(quote.net_subtotal_sen)} /{" "}
+            {money(FREE_DELIVERY_THRESHOLD_SEN)} · Products after discounts,
+            before delivery and tax
+          </small>
+        </>
+      )}
+    </aside>
+  );
+  const orderTotals = (
+    <div className="shop-totals">
+      <div>
+        <span>Product subtotal</span>
+        <strong>{money(subtotal)}</strong>
+      </div>
+      <div>
+        <span>{fulfillment === "delivery" ? "Delivery" : "Pickup"}</span>
+        <strong>{money(fee)}</strong>
+      </div>
+      {quote.delivery_discount_sen > 0 && (
+        <div className="shop-delivery-saving">
+          <span>
+            Free delivery discount{" "}
+            <small>
+              (included above; standard fee {money(quote.standard_fee_sen)})
+            </small>
+          </span>
+          <strong>−{money(quote.delivery_discount_sen)}</strong>
+        </div>
+      )}
+      <div>
+        <span>Tax</span>
+        <strong>{money(tax)}</strong>
+      </div>
+      <div className="shop-grand-total">
+        <span>Total</span>
+        <strong>{money(total)}</strong>
+      </div>
+    </div>
+  );
   return (
     <div className="shop">
       <div className="shop-announcement">
@@ -242,6 +458,14 @@ export default function Shop() {
               </button>
             ))}
           </div>
+          <aside className="shop-delivery-banner">
+            <Truck size={22} aria-hidden="true" />
+            <span>
+              <strong>FREE DELIVERY</strong>
+              <span className="shop-banner-divider"> | </span>Spend RM300 &amp;
+              above within Klang Valley
+            </span>
+          </aside>
           {loading ? (
             <div className="shop-loading" role="status">
               <RefreshCw size={22} className="spin" />
@@ -290,25 +514,48 @@ export default function Shop() {
                       <small>
                         {p.category ?? "The collection"} · {p.sku}
                       </small>
-                      <h3>{p.name}</h3>
-                      {p.english_name && <p>{p.english_name}</p>}
-                      <div>
+                      <h3>{p.english_name?.trim() || p.name}</h3>
+                      {p.english_name?.trim() && <p lang="zh">{p.name}</p>}
+                      <div className="shop-product-purchase">
                         <strong>{money(p.price_sen)}</strong>
-                        <button
-                          onClick={() => quantity(p.id, 1)}
-                          disabled={
-                            p.available <= 0 ||
-                            !store?.enabled ||
-                            cart.some(
-                              (l) =>
-                                l.product_id === p.id &&
-                                l.quantity >= Math.min(100, p.available),
-                            )
-                          }
-                          aria-label={`Add ${p.sku} to basket`}
+                        <div
+                          className="shop-card-quantity"
+                          role="group"
+                          aria-label={`${p.sku} quantity`}
                         >
-                          <Plus size={18} />
-                        </button>
+                          <button
+                            onClick={() => quantity(p.id, -1)}
+                            disabled={
+                              busy ||
+                              !store?.enabled ||
+                              p.available <= 0 ||
+                              !cart.find((l) => l.product_id === p.id)?.quantity
+                            }
+                            aria-label={`Remove ${p.sku} from basket`}
+                          >
+                            <Minus size={18} aria-hidden="true" />
+                          </button>
+                          <output
+                            aria-label={`Selected quantity for ${p.sku}`}
+                            aria-live="polite"
+                          >
+                            {cart.find((l) => l.product_id === p.id)
+                              ?.quantity ?? 0}
+                          </output>
+                          <button
+                            onClick={() => quantity(p.id, 1)}
+                            disabled={
+                              busy ||
+                              !store?.enabled ||
+                              p.available <= 0 ||
+                              (cart.find((l) => l.product_id === p.id)
+                                ?.quantity ?? 0) >= Math.min(100, p.available)
+                            }
+                            aria-label={`Add ${p.sku} to basket`}
+                          >
+                            <Plus size={18} aria-hidden="true" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                     {p.description && (
@@ -420,7 +667,12 @@ export default function Shop() {
                     return (
                       <div className="shop-cart-item" key={p.id}>
                         <div>
-                          <h3>{p.name}</h3>
+                          <h3>{p.english_name?.trim() || p.name}</h3>
+                          {p.english_name?.trim() && (
+                            <p className="shop-cart-chinese" lang="zh">
+                              {p.name}
+                            </p>
+                          )}
                           <small>
                             {p.sku} · {money(p.price_sen)} each
                           </small>
@@ -449,6 +701,7 @@ export default function Shop() {
                     );
                   })}
                 </div>
+                {deliveryProgress}
                 {checkout ? (
                   <form
                     onSubmit={async (e) => {
@@ -472,13 +725,9 @@ export default function Shop() {
                             phone: form.get("phone"),
                             email: form.get("email"),
                             address:
-                              fulfillment === "delivery"
-                                ? form.get("address")
-                                : "",
+                              fulfillment === "delivery" ? address.trim() : "",
                             postcode:
-                              fulfillment === "delivery"
-                                ? form.get("postcode")
-                                : "",
+                              fulfillment === "delivery" ? postcode.trim() : "",
                             notes: form.get("notes"),
                             website: form.get("website"),
                           }),
@@ -528,67 +777,7 @@ export default function Shop() {
                           />
                         </label>
                       </div>
-                      <label>
-                        How would you like your order?
-                        <select
-                          aria-label="Fulfillment method"
-                          value={fulfillment}
-                          onChange={(e) => {
-                            const f = e.target.value as "pickup" | "delivery";
-                            setFulfillment(f);
-                            setMethod(
-                              f === "pickup" && store?.allow_cash_pickup
-                                ? "cash"
-                                : canBank
-                                  ? "bank"
-                                  : canQR
-                                    ? "duitnow"
-                                    : "",
-                            );
-                            key.current = "";
-                          }}
-                        >
-                          {store?.allow_pickup && (
-                            <option value="pickup">Collect from store</option>
-                          )}
-                          {store?.allow_delivery && (
-                            <option value="delivery">Delivery</option>
-                          )}
-                        </select>
-                      </label>
-                      {fulfillment === "pickup" ? (
-                        <p className="shop-checkout-note">
-                          Pickup: {store?.pickup_address}
-                        </p>
-                      ) : (
-                        <>
-                          <label>
-                            Complete Malaysian delivery address
-                            <textarea
-                              name="address"
-                              autoComplete="street-address"
-                              minLength={10}
-                              maxLength={1000}
-                              required
-                              placeholder="Street, unit, city and state"
-                            />
-                          </label>
-                          <label>
-                            Postcode
-                            <input
-                              name="postcode"
-                              inputMode="numeric"
-                              autoComplete="postal-code"
-                              pattern="[0-9]{5}"
-                              maxLength={5}
-                              required
-                            />
-                          </label>
-                          <p className="shop-checkout-note">
-                            {store?.delivery_note}
-                          </p>
-                        </>
-                      )}
+                      {deliveryFields}
                       <label>
                         Payment method
                         <select
@@ -627,26 +816,7 @@ export default function Shop() {
                           autoComplete="off"
                         />
                       </label>
-                      <div className="shop-totals">
-                        <div>
-                          <span>Products</span>
-                          <strong>{money(subtotal)}</strong>
-                        </div>
-                        <div>
-                          <span>
-                            {fulfillment === "delivery" ? "Delivery" : "Pickup"}
-                          </span>
-                          <strong>{money(fee)}</strong>
-                        </div>
-                        <div>
-                          <span>Tax</span>
-                          <strong>{money(tax)}</strong>
-                        </div>
-                        <div className="shop-grand-total">
-                          <span>Total</span>
-                          <strong>{money(total)}</strong>
-                        </div>
-                      </div>
+                      {orderTotals}
                       <label className="shop-agreement">
                         <input
                           type="checkbox"
@@ -669,7 +839,14 @@ export default function Shop() {
                       )}
                       <button
                         className="shop-primary full"
-                        disabled={busy || !method || !agreed || total <= 0}
+                        disabled={
+                          busy ||
+                          !method ||
+                          !agreed ||
+                          total <= 0 ||
+                          (fulfillment === "delivery" &&
+                            (!quote.confirmed || !quote.deliverable))
+                        }
                       >
                         {busy ? "Placing your order…" : "Place order"}
                         <Check size={17} />
@@ -685,15 +862,14 @@ export default function Shop() {
                   </form>
                 ) : (
                   <>
-                    <div className="shop-totals">
-                      <div className="shop-grand-total">
-                        <span>Subtotal</span>
-                        <strong>{money(subtotal)}</strong>
-                      </div>
+                    <div className="shop-delivery-estimate">
+                      <h3>Pickup & delivery estimate</h3>
+                      {deliveryFields}
                     </div>
+                    {orderTotals}
                     <p className="shop-checkout-note">
-                      Delivery and any applicable tax are calculated at
-                      checkout.
+                      Delivery and tax estimates update with your postcode.
+                      Confirm your complete address before ordering.
                     </p>
                     <button
                       className="shop-primary full"

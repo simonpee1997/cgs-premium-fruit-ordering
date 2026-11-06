@@ -153,6 +153,28 @@ test("owner can configure pickup, delivery and payment details", async ({
     .getByLabel("Bank account number", { exact: true })
     .fill("TEST-ONLY-ACCOUNT");
   await dialog.getByLabel("Enable online orders", { exact: true }).check();
+  await dialog
+    .getByRole("button", { name: "Add delivery area", exact: true })
+    .click();
+  await dialog.getByLabel("Area 1 name", { exact: true }).fill("Test KV area");
+  await dialog
+    .getByLabel("Area 1 postcodes (comma-separated)", { exact: true })
+    .fill("50000, 50050");
+  await dialog
+    .getByLabel("Area 1 standard delivery fee (RM)", { exact: true })
+    .fill("8.00");
+  await dialog
+    .getByRole("checkbox", {
+      name: "Area 1 is in Klang Valley and eligible for free delivery at RM300",
+    })
+    .check();
+  await dialog
+    .getByRole("button", { name: "Add delivery area", exact: true })
+    .click();
+  await dialog
+    .getByRole("button", { name: "Remove area 2", exact: true })
+    .click();
+
   let submitted: Record<string, unknown> | undefined;
   await page.route("**/api/online-orders", async (route) => {
     submitted = route.request().postDataJSON();
@@ -163,6 +185,18 @@ test("owner can configure pickup, delivery and payment details", async ({
     .click();
   await expect(dialog).toHaveCount(0);
   expect(submitted?.operation).toBe("configure");
+  expect(
+    (submitted?.settings as { delivery_areas: unknown[] }).delivery_areas,
+  ).toEqual([
+    {
+      id: expect.any(String),
+      name: "Test KV area",
+      postcodes: ["50000", "50050"],
+      standard_fee_sen: 800,
+      free_delivery_eligible: true,
+    },
+  ]);
+
   expect(
     (submitted?.settings as { delivery_fee_sen: number }).delivery_fee_sen,
   ).toBe(500);

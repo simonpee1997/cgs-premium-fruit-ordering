@@ -62,3 +62,14 @@ Automatic payment integrations, LHDN integration, bundles, automated loyalty rul
 - [ ] Apply migration 004 to CHIPSTI only; configure actual fulfillment/payment details
 - [ ] Deploy approved update and verify live Auth, orders, receipts, refunds and reports
 - [ ] Multi-session PostgreSQL contention and real iPad/Safari/hardware verification
+
+## Quantity controls and RM300 delivery release
+
+- [x] Card minus/quantity/plus, zero removal, stock limits and filter/basket synchronization implemented.
+- [x] Exact-postcode delivery areas and owner-editable standard fees; no assumed Klang Valley coverage.
+- [x] Frontend estimates and authoritative database rules for threshold, location, fallback charges, pickup and tax.
+- [x] Existing-order snapshots and paid-sale/refund behavior covered locally.
+- [ ] Owner approval for migration 006 and production release.
+- [ ] Apply 006 to CHIPSTI POS only, before the application deployment.
+- [ ] Owner configures verified Klang Valley coverage and actual fees.
+- [ ] Hosted checkout/payment/refund and actual iPad/Safari/device checks.

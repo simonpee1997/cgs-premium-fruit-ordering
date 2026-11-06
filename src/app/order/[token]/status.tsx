@@ -251,6 +251,12 @@ export default function OrderStatus({ token }: { token: string }) {
                   <span>Delivery</span>
                   <strong>{money(order.delivery_fee_sen)}</strong>
                 </div>
+                {(order.delivery_discount_sen ?? 0) > 0 && (
+                  <div>
+                    <span>Free delivery saving (included above)</span>
+                    <strong>−{money(order.delivery_discount_sen ?? 0)}</strong>
+                  </div>
+                )}
                 <div>
                   <span>Tax</span>
                   <strong>{money(order.tax_sen)}</strong>

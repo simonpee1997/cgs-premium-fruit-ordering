@@ -6,6 +6,10 @@ A Next.js App Router / TypeScript / Tailwind POS backed by Supabase Auth, Postgr
 
 The updated application serves the public collection and online checkout at `/`, with staff POS at `/admin`. It supports store pickup and delivery, pending stock reservations, customer order-status links, manual bank/DuitNow references and staff payment confirmation into the existing sales/receipt/reporting system. See [online-shop setup and rollout](docs/ONLINE-SHOP.md) before applying migration 004 or deploying. Online ordering starts disabled until the owner configures fulfillment/payment details and actual stock. The new migration and production release require owner approval.
 
+## Quantity controls and delivery promotion
+
+The public shop includes synchronized product-card quantity selectors and owner-configured exact-postcode areas for free delivery at RM300 within Klang Valley. See [setup and verification](docs/QUANTITIES-AND-DELIVERY.md). Migration `006_delivery_areas.sql` is required before deploying this release; new delivery areas start empty, and the existing flat fee remains the fallback. Apply only with explicit production approval. No new environment variables or dependencies are required.
+
 ## Run locally
 
 Requires Node.js 24 (.nvmrc and Vercel runtime are pinned to 24.x), npm, and a Supabase project. Use the existing checkout; cloud tasks are isolated already, so a worktree is unnecessary.

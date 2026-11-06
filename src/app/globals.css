@@ -1455,3 +1455,28 @@ html[data-theme="dark"] .brand-mark {
   margin-top: 3px;
   overflow-wrap: anywhere;
 }
+
+.online-delivery-areas {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  min-width: 0;
+}
+.online-delivery-areas > legend {
+  font-size: 14px;
+  padding: 0 6px;
+}
+.online-delivery-area {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  margin: 16px 0;
+  min-width: 0;
+}
+.online-delivery-area label {
+  margin: 10px 0;
+}
+.online-delivery-area > legend {
+  font-size: 12px;
+  padding: 0 6px;
+}

@@ -4,6 +4,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import { Check, Settings, Upload, RefreshCw, ShoppingBag } from "lucide-react";
 import { money, parseAmount, localDate } from "@/lib/money";
 import type { AppData } from "@/lib/data";
+import type { DeliveryArea } from "@/lib/shop-types";
 const defaults = {
   enabled: false,
   allow_pickup: true,
@@ -14,6 +15,7 @@ const defaults = {
   delivery_fee_sen: 0,
   delivery_postcode_prefixes: [] as string[],
   delivery_note: "",
+  delivery_areas: [] as DeliveryArea[],
   bank_name: "",
   bank_account_name: "",
   bank_account_number: "",
@@ -31,7 +33,8 @@ export default function OnlineOrders({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
-    [filter, setFilter] = useState("pending");
+    [filter, setFilter] = useState("pending"),
+    [areaDraft, setAreaDraft] = useState<DeliveryArea[]>([]);
   const orders = data.tables.online_orders ?? [],
     items = data.tables.online_order_items ?? [],
     setting = {
@@ -101,6 +104,12 @@ export default function OnlineOrders({
           <button
             className="primary"
             onClick={() => {
+              setAreaDraft(
+                setting.delivery_areas.map((area) => ({
+                  ...area,
+                  postcodes: [...area.postcodes],
+                })),
+              );
               setSettingsOpen(true);
               setError("");
             }}
@@ -276,6 +285,12 @@ export default function OnlineOrders({
               <span>Delivery</span>
               <strong>{money(order.delivery_fee_sen)}</strong>
             </div>
+            {Number(order.delivery_discount_sen) > 0 && (
+              <div className="summary-row">
+                <span>Free delivery saving (included above)</span>
+                <strong>−{money(order.delivery_discount_sen)}</strong>
+              </div>
+            )}
             <div className="summary-row">
               <span>Tax</span>
               <strong>{money(order.tax_sen)}</strong>
@@ -482,6 +497,23 @@ export default function OnlineOrders({
                       .split(",")
                       .map((s) => s.trim())
                       .filter(Boolean),
+                    delivery_areas: areaDraft.map((area) => ({
+                      id: area.id,
+                      name: String(
+                        values.get(`area_${area.id}_name`) || "",
+                      ).trim(),
+                      postcodes: String(
+                        values.get(`area_${area.id}_postcodes`) || "",
+                      )
+                        .split(",")
+                        .map((s) => s.trim())
+                        .filter(Boolean),
+                      standard_fee_sen: parseAmount(
+                        String(values.get(`area_${area.id}_fee`) || "0"),
+                      ),
+                      free_delivery_eligible:
+                        values.get(`area_${area.id}_free`) === "on",
+                    })),
                     delivery_note: String(values.get("delivery_note") || ""),
                     bank_name: String(values.get("bank_name") || ""),
                     bank_account_name: String(
@@ -562,6 +594,94 @@ export default function OnlineOrders({
                   defaultValue={setting.delivery_postcode_prefixes.join(", ")}
                 />
               </label>
+              <fieldset className="online-delivery-areas" disabled={busy}>
+                <legend>Delivery areas &amp; RM300 free delivery</legend>
+                <p>
+                  Add exact five-digit postcodes and their standard fees. Only
+                  mark an area eligible after verifying it is within Klang
+                  Valley. No areas are assumed eligible. Your delivery postcode
+                  restrictions above still apply.
+                </p>
+                {areaDraft.map((area, index) => (
+                  <fieldset key={area.id} className="online-delivery-area">
+                    <legend>Area {index + 1}</legend>
+                    <label>
+                      Area {index + 1} name
+                      <input
+                        name={`area_${area.id}_name`}
+                        defaultValue={area.name}
+                        maxLength={100}
+                        required
+                      />
+                    </label>
+                    <label>
+                      Area {index + 1} postcodes (comma-separated)
+                      <input
+                        name={`area_${area.id}_postcodes`}
+                        defaultValue={area.postcodes.join(", ")}
+                        placeholder="Exact five-digit postcodes"
+                        required
+                      />
+                    </label>
+                    <label>
+                      Area {index + 1} standard delivery fee (RM)
+                      <input
+                        name={`area_${area.id}_fee`}
+                        type="number"
+                        min="0"
+                        max="100000"
+                        step="0.01"
+                        defaultValue={area.standard_fee_sen / 100}
+                        required
+                      />
+                    </label>
+                    <label className="checkbox-label">
+                      <input
+                        name={`area_${area.id}_free`}
+                        type="checkbox"
+                        defaultChecked={area.free_delivery_eligible}
+                      />
+                      Area {index + 1} is in Klang Valley and eligible for free
+                      delivery at RM300
+                    </label>
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={() =>
+                        setAreaDraft((areas) =>
+                          areas.filter((a) => a.id !== area.id),
+                        )
+                      }
+                    >
+                      Remove area {index + 1}
+                    </button>
+                  </fieldset>
+                ))}
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={areaDraft.length >= 20}
+                  onClick={() =>
+                    setAreaDraft((areas) => [
+                      ...areas,
+                      {
+                        id: crypto.randomUUID(),
+                        name: "",
+                        postcodes: [],
+                        standard_fee_sen: setting.delivery_fee_sen,
+                        free_delivery_eligible: false,
+                      },
+                    ])
+                  }
+                >
+                  Add delivery area
+                </button>
+                <p>
+                  Unlisted postcodes use the flat delivery fee, never automatic
+                  free delivery. Each postcode may appear in only one area.
+                  Pickup is always free.
+                </p>
+              </fieldset>
               <label>
                 Delivery instructions / estimated timing
                 <textarea

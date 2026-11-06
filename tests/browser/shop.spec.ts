@@ -189,3 +189,237 @@ test("public financial mutations reject foreign origins", async ({
     expect(response.status()).toBe(403);
   }
 });
+
+test("quantity controls stay independent, honor stock and synchronize across filters and basket", async ({
+  page,
+}) => {
+  await page.route("**/api/shop", (route) =>
+    route.fulfill({
+      json: {
+        store,
+        products: products.map((p, i) => ({
+          ...p,
+          category: i === 1 ? "Gifts" : "Snacks",
+        })),
+      },
+    }),
+  );
+  await page.reload();
+  const group = page.getByRole("group", {
+    name: "LF-02 quantity",
+    exact: true,
+  });
+  await expect(group.getByRole("status")).toHaveText("0");
+  await expect(
+    group.getByRole("button", {
+      name: "Remove LF-02 from basket",
+      exact: true,
+    }),
+  ).toBeDisabled();
+  for (let n = 0; n < 5; n++)
+    await group
+      .getByRole("button", { name: "Add LF-02 to basket", exact: true })
+      .click();
+  await expect(group.getByRole("status")).toHaveText("5");
+  await expect(
+    group.getByRole("button", { name: "Add LF-02 to basket", exact: true }),
+  ).toBeDisabled();
+  await page.getByRole("button", { name: "Open basket, 5 items" }).click();
+  await expect(page.locator(".shop-cart-item")).toHaveCount(1);
+  await page
+    .getByRole("button", { name: "Remove one LF-02", exact: true })
+    .click();
+  await expect(page.locator(".shop-cart-item .shop-quantity span")).toHaveText(
+    "4",
+  );
+  await page.getByRole("button", { name: "Close basket" }).click();
+  await expect(group.getByRole("status")).toHaveText("4");
+  await page
+    .locator(".shop-categories")
+    .getByRole("button", { name: "Gifts", exact: true })
+    .click();
+  await expect(group).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Add LF-05 to basket", exact: true })
+    .click();
+  await page
+    .locator(".shop-categories")
+    .getByRole("button", { name: "All products", exact: true })
+    .click();
+  await page.getByLabel("Search collection").fill("LF-02");
+  await expect(group.getByRole("status")).toHaveText("4");
+  await page.getByLabel("Search collection").fill("");
+  await expect(
+    page
+      .getByRole("group", { name: "LF-05 quantity", exact: true })
+      .getByRole("status"),
+  ).toHaveText("1");
+  await page
+    .getByRole("button", { name: "Remove LF-05 from basket", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Open basket, 4 items" }).click();
+  await expect(page.locator(".shop-cart-item")).toHaveCount(1);
+  for (let n = 0; n < 4; n++)
+    await page
+      .getByRole("button", { name: "Remove one LF-02", exact: true })
+      .click();
+  await expect(
+    page.getByRole("heading", { name: "A fresh start.", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Close basket" }).click();
+  await expect(group.getByRole("status")).toHaveText("0");
+  const size = await group.getByRole("button").first().boundingBox();
+  expect(size!.width).toBeGreaterThanOrEqual(44);
+  expect(size!.height).toBeGreaterThanOrEqual(44);
+});
+const deliveryAreas = [
+  {
+    id: "90000000-0000-4000-8000-000000000001",
+    name: "Test KV area",
+    postcodes: ["50000"],
+    standard_fee_sen: 800,
+    free_delivery_eligible: true,
+  },
+  {
+    id: "90000000-0000-4000-8000-000000000002",
+    name: "Test outside KV",
+    postcodes: ["80000"],
+    standard_fee_sen: 1500,
+    free_delivery_eligible: false,
+  },
+];
+test("delivery promotion updates with address, quantities, outside areas and pickup", async ({
+  page,
+}) => {
+  await page.route("**/api/shop", (route) =>
+    route.fulfill({
+      json: {
+        store: {
+          ...store,
+          delivery_areas: deliveryAreas,
+          delivery_postcode_prefixes: [],
+        },
+        products: products.map((p) => ({ ...p, price_sen: 10000 })),
+      },
+    }),
+  );
+  await page.reload();
+  await expect(page.locator(".shop-delivery-banner")).toContainText(
+    "Spend RM300 & above within Klang Valley",
+  );
+  for (let n = 0; n < 3; n++)
+    await page
+      .getByRole("button", { name: "Add LF-02 to basket", exact: true })
+      .click();
+  await page.getByRole("button", { name: "Open basket, 3 items" }).click();
+  await page.getByLabel("Fulfillment method").selectOption("delivery");
+  await expect(
+    page.getByText(
+      "Select your delivery area to check free delivery eligibility.",
+    ),
+  ).toBeVisible();
+  await page.getByLabel("Delivery area", { exact: true }).selectOption("50000");
+  await expect(
+    page.getByText(
+      "Select your delivery area to check free delivery eligibility.",
+    ),
+  ).toBeVisible();
+  await page
+    .getByLabel("Complete Malaysian delivery address")
+    .fill("Test-only unit and delivery street, Kuala Lumpur");
+  await expect(
+    page.getByText("Congratulations! You've unlocked FREE DELIVERY!"),
+  ).toBeVisible();
+  await expect(page.locator(".shop-grand-total")).toContainText("318.00");
+  await expect(page.getByRole("progressbar")).toHaveAttribute(
+    "aria-valuenow",
+    "30000",
+  );
+  await page
+    .getByRole("button", { name: "Remove one LF-02", exact: true })
+    .click();
+  await expect(page.getByText(/Add RM\s?100.00 more/)).toBeVisible();
+  await expect(page.locator(".shop-grand-total")).toContainText("220.48");
+  await page
+    .getByRole("button", { name: "Add one LF-02", exact: true })
+    .click();
+  await page.getByLabel("Delivery area", { exact: true }).selectOption("80000");
+  await expect(
+    page.getByText("Free delivery is available within Klang Valley only."),
+  ).toBeVisible();
+  await expect(page.locator(".shop-grand-total")).toContainText("333.90");
+  await page.getByLabel("Postcode", { exact: true }).fill("50100");
+  await expect(page.locator(".shop-grand-total")).toContainText("323.30");
+  await page.getByLabel("Fulfillment method").selectOption("pickup");
+  await expect(page.getByText("Pickup has no delivery fee.")).toBeVisible();
+  await expect(page.locator(".shop-grand-total")).toContainText("318.00");
+  await page.getByRole("button", { name: "Continue to checkout" }).click();
+  await page.getByLabel("Fulfillment method").selectOption("delivery");
+  await expect(page.getByLabel("Postcode", { exact: true })).toHaveValue(
+    "50100",
+  );
+  await expect(page.locator(".shop-grand-total")).toContainText("323.30");
+  await page.getByLabel("Delivery area", { exact: true }).selectOption("50000");
+  await expect(page.locator(".shop-grand-total")).toContainText("318.00");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: `test-results/delivery-${test.info().project.name}.png`,
+    fullPage: true,
+  });
+});
+for (const [price, fee] of [
+  [29999, 800],
+  [30000, 0],
+]) {
+  test(`checkout independently sends the ${price} sen threshold total to the server`, async ({
+    page,
+  }) => {
+    await page.route("**/api/shop", (route) =>
+      route.fulfill({
+        json: {
+          store: { ...store, tax_bps: 0, delivery_areas: deliveryAreas },
+          products: products.map((p) => ({ ...p, price_sen: price })),
+        },
+      }),
+    );
+    await page.reload();
+    await page
+      .getByRole("button", { name: "Add LF-02 to basket", exact: true })
+      .click();
+    await page.getByRole("button", { name: "Open basket, 1 items" }).click();
+    await page.getByRole("button", { name: "Continue to checkout" }).click();
+    await page.getByLabel("Full name").fill("Test customer");
+    await page.getByLabel("Contact number").fill("0100000000");
+    await page.getByLabel("Fulfillment method").selectOption("delivery");
+    await page
+      .getByLabel("Delivery area", { exact: true })
+      .selectOption("50000");
+    await page
+      .getByLabel("Complete Malaysian delivery address")
+      .fill("Test-only unit and delivery street, Kuala Lumpur");
+    await page
+      .getByRole("checkbox", { name: /I agree to the order total/ })
+      .check();
+    let payload: Record<string, unknown> | undefined;
+    await page.route("**/api/shop/order", async (route) => {
+      payload = route.request().postDataJSON();
+      await route.fulfill({
+        status: 400,
+        json: { error: "Test-only stop after validating the request" },
+      });
+    });
+    await page
+      .getByRole("button", { name: "Place order", exact: true })
+      .click();
+    await expect(
+      page.getByText("Test-only stop after validating the request"),
+    ).toBeVisible();
+    expect(payload?.expected_total_sen).toBe(price + fee);
+    expect(payload?.postcode).toBe("50000");
+    expect(payload).not.toHaveProperty("delivery_fee_sen");
+  });
+}

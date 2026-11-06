@@ -1,6 +1,36 @@
 import { z } from "zod";
 const text = z.string().trim().min(1).max(150),
   id = z.uuid();
+export const deliveryAreasSchema = z
+  .array(
+    z.object({
+      id,
+      name: z.string().trim().min(1).max(100),
+      postcodes: z
+        .array(
+          z
+            .string()
+            .regex(/^\d{5}$/, "Each area needs exact five-digit postcodes"),
+        )
+        .min(1)
+        .max(100),
+      standard_fee_sen: z.number().int().min(0).max(10000000),
+      free_delivery_eligible: z.boolean(),
+    }),
+  )
+  .max(20)
+  .superRefine((areas, ctx) => {
+    const ids = areas.map((a) => a.id);
+    const codes = areas.flatMap((a) => a.postcodes);
+    if (
+      new Set(ids).size !== ids.length ||
+      new Set(codes).size !== codes.length
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "Each delivery area and postcode must be unique",
+      });
+  });
 export const onlineOrderSchema = z
   .object({
     key: id,
@@ -31,6 +61,7 @@ export const onlineOrderSchema = z
       .min(1)
       .max(50),
   })
+  .strict()
   .superRefine((v, ctx) => {
     if (v.fulfillment === "delivery") {
       if (v.address.length < 10)
@@ -69,6 +100,7 @@ export const onlineSettingsSchema = z
     contact_phone: z.string().max(30),
     delivery_fee_sen: z.number().int().min(0).max(10000000),
     delivery_postcode_prefixes: z.array(z.string().regex(/^\d{1,5}$/)).max(200),
+    delivery_areas: deliveryAreasSchema.optional(),
     delivery_note: z.string().max(1000),
     bank_name: z.string().max(150),
     bank_account_name: z.string().max(150),

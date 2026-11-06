@@ -415,15 +415,17 @@
   letter-spacing: 0.5px;
 }
 .shop-product-info h3 {
-  font-weight: 500;
-  font-size: 13px;
-  line-height: 1.7;
-  margin: 11px 0 14px;
-  min-height: 44px;
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 1.4;
+  margin: 11px 0 8px;
+  overflow-wrap: anywhere;
 }
 .shop-product-info p {
-  font-size: 10px;
-  margin-top: -8px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--shop-muted);
+  margin: 0 0 14px;
 }
 .shop-product-info > div {
   display: flex;
@@ -1066,9 +1068,8 @@
     padding: 13px;
   }
   .shop-product-info h3 {
-    font-size: 12px;
-    margin: 9px 0 13px;
-    min-height: 42px;
+    font-size: 18px;
+    margin: 9px 0 8px;
   }
   .shop-product-info > small {
     font-size: 7px;
@@ -1210,5 +1211,130 @@
   }
   .shop .shop-search {
     margin-bottom: 20px;
+  }
+}
+
+.shop-cart-item .shop-cart-chinese {
+  font-size: 13px;
+  color: var(--shop-muted);
+  margin: 0 0 8px;
+}
+
+/* Shared basket state drives every card; full-width controls keep touch targets large. */
+.shop-product-info .shop-product-purchase {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+}
+.shop-card-quantity {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 48px;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--shop-line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--shop-cream);
+}
+.shop-product-info .shop-card-quantity button {
+  border: 0;
+  border-radius: 0;
+  width: 100%;
+  min-width: 44px;
+  height: 48px;
+  color: var(--shop-ink);
+}
+.shop-card-quantity output {
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  font-weight: 700;
+  min-width: 0;
+}
+.shop-delivery-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 19px 22px;
+  margin: 0 0 24px;
+  border: 1px solid #d9ccb7;
+  border-radius: 10px;
+  background: #eee7d8;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.shop-delivery-banner svg {
+  flex-shrink: 0;
+  color: var(--shop-gold);
+}
+.shop-delivery-banner strong {
+  letter-spacing: 1px;
+}
+.shop-delivery-progress {
+  margin: 20px 0;
+  padding: 16px;
+  border: 1px solid var(--shop-line);
+  border-radius: 10px;
+  background: var(--shop-cream);
+}
+.shop-delivery-progress p {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.shop-delivery-progress small {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--shop-muted);
+}
+.shop-delivery-progress [role="progressbar"] {
+  height: 7px;
+  border-radius: 10px;
+  background: var(--shop-line);
+  overflow: hidden;
+}
+.shop-delivery-progress [role="progressbar"] span {
+  display: block;
+  height: 100%;
+  background: var(--shop-gold);
+  transition: width 180ms ease;
+}
+.shop-delivery-progress.unlocked {
+  border-color: #76816a;
+}
+.shop-delivery-progress.unlocked [role="progressbar"] span {
+  background: #647758;
+}
+.shop-delivery-estimate {
+  margin: 22px 0;
+}
+.shop-delivery-estimate h3 {
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+.shop-delivery-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.shop-delivery-saving {
+  color: #526648;
+}
+.shop-delivery-saving small {
+  display: block;
+  font-size: 10px;
+}
+@media (max-width: 600px) {
+  .shop-delivery-banner {
+    font-size: 12px;
+    padding: 15px;
+  }
+  .shop-delivery-banner strong {
+    display: block;
+  }
+  .shop-banner-divider {
+    display: none;
   }
 }
