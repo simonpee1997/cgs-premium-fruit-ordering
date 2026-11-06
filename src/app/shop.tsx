@@ -50,7 +50,51 @@ export default function Shop() {
       total_sen: number;
       error: string;
     } | null>(null),
-    [quoteAttempt, setQuoteAttempt] = useState(0);
+    [quoteAttempt, setQuoteAttempt] = useState(0),
+    [promoInput, setPromoInput] = useState(""),
+    [promoCode, setPromoCode] = useState(""),
+    [promoResult, setPromoResult] = useState<{
+      context: string;
+      discount_sen: number;
+      percent_bps: number;
+      name: string;
+      error: string;
+    } | null>(null);
+  const cartRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!open || !window.matchMedia("(max-width: 1050px)").matches) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const before = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const panel = cartRef.current;
+    panel
+      ?.querySelector<HTMLElement>("button, input, select, textarea, a")
+      ?.focus();
+    function trap(e: KeyboardEvent) {
+      if (e.key === "Escape" && !busy) setOpen(false);
+      if (e.key !== "Tab" || !panel) return;
+      const controls = [
+        ...panel.querySelectorAll<HTMLElement>(
+          "button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href]",
+        ),
+      ].filter((el) => el.offsetParent !== null);
+      const first = controls[0],
+        last = controls.at(-1);
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last?.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first?.focus();
+      }
+    }
+    document.addEventListener("keydown", trap);
+    return () => {
+      document.body.style.overflow = before;
+      document.removeEventListener("keydown", trap);
+      previous?.focus();
+    };
+  }, [open, busy]);
   const key = useRef("");
   const load = useCallback(async () => {
     try {
@@ -58,6 +102,11 @@ export default function Shop() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
       setData(result);
+      if (result.store.promotions_available !== true) {
+        setPromoCode("");
+        setPromoInput("");
+        setPromoResult(null);
+      }
       setFulfillment((current) =>
         current === "pickup" && !result.store.allow_pickup
           ? "delivery"
@@ -108,20 +157,77 @@ export default function Shop() {
           l.quantity,
       0,
     );
+  const promoContext = JSON.stringify({
+    items: cart,
+    subtotal,
+    code: promoCode,
+  });
+  const promotionsAvailable = store?.promotions_available === true;
+  const promoValid =
+    promotionsAvailable &&
+    !!promoCode &&
+    promoResult?.context === promoContext &&
+    !promoResult.error;
+  const discount = promoValid ? promoResult.discount_sen : 0;
+  const promoPending = !!promoCode && promoResult?.context !== promoContext;
+  useEffect(() => {
+    if (!promotionsAvailable || !promoCode || !cart.length) return;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch("/api/shop/promotion", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            code: promoCode,
+            items: JSON.parse(promoContext).items,
+          }),
+          signal: controller.signal,
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error);
+        if (!controller.signal.aborted)
+          setPromoResult({
+            context: promoContext,
+            discount_sen: result.discount_sen,
+            percent_bps: result.percent_bps,
+            name: result.name,
+            error: "",
+          });
+      } catch (e) {
+        if (!controller.signal.aborted)
+          setPromoResult({
+            context: promoContext,
+            discount_sen: 0,
+            percent_bps: 0,
+            name: "",
+            error: e instanceof Error ? e.message : "Unable to apply code",
+          });
+      }
+    }, 250);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [promotionsAvailable, promoCode, promoContext, cart.length, quoteAttempt]);
   const quote = deliveryQuote({
     fulfillment,
     postcode,
     address,
     subtotal_sen: subtotal,
+    discount_sen: discount,
     default_fee_sen: store?.delivery_fee_sen ?? 0,
     areas: store?.delivery_areas ?? [],
     postcode_prefixes: store?.delivery_postcode_prefixes ?? [],
   });
   const fee = quote.fee_sen,
-    tax = Math.floor(((subtotal + fee) * (store?.tax_bps ?? 0) + 5000) / 10000),
-    total = subtotal + fee + tax;
+    tax = Math.floor(
+      ((subtotal - discount + fee) * (store?.tax_bps ?? 0) + 5000) / 10000,
+    ),
+    total = subtotal - discount + fee + tax;
   const proofContext = JSON.stringify({
     items: cart,
+    ...(promoValid ? { promo_code: promoCode } : {}),
     fulfillment,
     postcode: postcode.trim(),
     address: address.trim(),
@@ -134,7 +240,12 @@ export default function Shop() {
   const validProof =
     proof?.context === proofContext && qrVerified ? proof : null;
   useEffect(() => {
-    if (method !== "duitnow" || !checkout) return;
+    if (
+      method !== "duitnow" ||
+      !checkout ||
+      (promotionsAvailable && promoCode && !promoValid)
+    )
+      return;
     const context = JSON.parse(proofContext);
     if (
       !context.items.length ||
@@ -178,7 +289,15 @@ export default function Shop() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [method, checkout, proofContext, quoteAttempt]);
+  }, [
+    method,
+    checkout,
+    proofContext,
+    quoteAttempt,
+    promotionsAvailable,
+    promoCode,
+    promoValid,
+  ]);
   const categories = [
     "All",
     ...new Set(products.map((p) => p.category || "Collection")),
@@ -255,22 +374,32 @@ export default function Shop() {
   }
   const deliveryFields = (
     <div className="shop-delivery-fields">
-      <label>
-        How would you like your order?
-        <select
-          aria-label="Fulfillment method"
-          value={fulfillment}
-          disabled={busy}
-          onChange={(e) =>
-            changeFulfillment(e.target.value as "pickup" | "delivery")
-          }
-        >
-          {store?.allow_pickup && (
-            <option value="pickup">Collect from store</option>
-          )}
-          {store?.allow_delivery && <option value="delivery">Delivery</option>}
-        </select>
-      </label>
+      <div
+        className="shop-fulfillment"
+        role="group"
+        aria-label="Fulfillment method"
+      >
+        {store?.allow_delivery && (
+          <button
+            type="button"
+            disabled={busy}
+            aria-pressed={fulfillment === "delivery"}
+            onClick={() => changeFulfillment("delivery")}
+          >
+            Delivery
+          </button>
+        )}
+        {store?.allow_pickup && (
+          <button
+            type="button"
+            disabled={busy}
+            aria-pressed={fulfillment === "pickup"}
+            onClick={() => changeFulfillment("pickup")}
+          >
+            Pickup
+          </button>
+        )}
+      </div>
       {fulfillment === "pickup" ? (
         <p className="shop-checkout-note">Pickup: {store?.pickup_address}</p>
       ) : (
@@ -385,12 +514,84 @@ export default function Shop() {
       )}
     </aside>
   );
+  const promotionFields = (
+    <div className="shop-promotion">
+      <label htmlFor="shop-promo">Have a promo code? / 有优惠码吗？</label>
+      <div className="shop-promo-entry">
+        <input
+          id="shop-promo"
+          value={promoInput}
+          onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+          maxLength={32}
+          placeholder="Enter promo code"
+          disabled={busy}
+        />
+        <button
+          type="button"
+          className="shop-secondary"
+          disabled={busy || !cart.length || !promoInput.trim()}
+          onClick={() => {
+            key.current = "";
+            setPromoCode(promoInput.trim().toUpperCase());
+            setPromoResult(null);
+            setQuoteAttempt((n) => n + 1);
+          }}
+        >
+          Apply
+        </button>
+      </div>
+      {promoCode && (
+        <>
+          <button
+            type="button"
+            className="shop-back"
+            disabled={busy}
+            onClick={() => {
+              setPromoCode("");
+              setPromoInput("");
+              setPromoResult(null);
+              key.current = "";
+            }}
+          >
+            Remove code {promoCode}
+          </button>
+          <p
+            role={promoResult?.error ? "alert" : "status"}
+            className={promoResult?.error ? "shop-error" : "shop-promo-message"}
+          >
+            {promoPending
+              ? "Checking promo code…"
+              : promoResult?.error ||
+                `${promoCode} applied${promoResult?.percent_bps ? ` · ${promoResult.percent_bps / 100}% off` : ""}. You save ${money(discount)}.`}
+          </p>
+        </>
+      )}
+    </div>
+  );
   const orderTotals = (
     <div className="shop-totals">
       <div>
         <span>Product subtotal</span>
         <strong>{money(subtotal)}</strong>
       </div>
+      {discount > 0 && (
+        <>
+          <div className="shop-promo-saving">
+            <span>
+              Discount
+              {promoResult?.percent_bps
+                ? ` (${promoResult.percent_bps / 100}%)`
+                : ""}{" "}
+              · {promoCode}
+            </span>
+            <strong>−{money(discount)}</strong>
+          </div>
+          <div>
+            <span>Subtotal after discount</span>
+            <strong>{money(subtotal - discount)}</strong>
+          </div>
+        </>
+      )}
       <div>
         <span>{fulfillment === "delivery" ? "Delivery" : "Pickup"}</span>
         <strong>{money(fee)}</strong>
@@ -416,12 +617,428 @@ export default function Shop() {
       </div>
     </div>
   );
+  const cartPanel = (
+    <div className={`shop-cart-shell${open ? " is-open" : ""}`}>
+      <button
+        className="shop-cart-backdrop"
+        aria-label="Dismiss cart overlay"
+        tabIndex={-1}
+        onClick={() => !busy && setOpen(false)}
+      />
+      <section
+        ref={cartRef}
+        id="order-summary"
+        className="shop-cart"
+        role={open ? "dialog" : "complementary"}
+        aria-label={checkout ? "Online checkout" : "Your basket"}
+      >
+        <div className="shop-cart-heading">
+          <BrandLogo className="checkout-logo" />
+          <div>
+            <span className="shop-eyebrow">
+              CHIPSTI CART · {count} {count === 1 ? "item" : "items"}
+            </span>
+            <h2>{checkout ? "Checkout" : "Order Summary"}</h2>
+          </div>
+          <button
+            className="shop-icon"
+            onClick={() => !busy && setOpen(false)}
+            aria-label="Close basket"
+          >
+            <X />
+          </button>
+        </div>
+        {!cart.length ? (
+          <div className="shop-empty">
+            <ShoppingBag size={38} strokeWidth={1} />
+            <h3>A fresh start.</h3>
+            <p>Add something lovely from the collection.</p>
+            <button className="shop-primary" onClick={() => setOpen(false)}>
+              Explore products
+              <ArrowRight size={16} />
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="shop-cart-items">
+              {cart.map((l) => {
+                const p = products.find((p) => p.id === l.product_id);
+                if (!p) return null;
+                return (
+                  <div className="shop-cart-item" key={p.id}>
+                    <div className="shop-cart-thumb" aria-hidden="true">
+                      {p.image_url ? (
+                        <Image
+                          src={p.image_url}
+                          alt=""
+                          width={52}
+                          height={52}
+                          unoptimized
+                        />
+                      ) : (
+                        <ShoppingBag size={22} />
+                      )}
+                    </div>
+                    <div>
+                      <h3>{p.english_name?.trim() || p.name}</h3>
+                      {p.english_name?.trim() && (
+                        <p className="shop-cart-chinese" lang="zh">
+                          {p.name}
+                        </p>
+                      )}
+                      <small>
+                        {p.sku} · {p.description || "Standard pack"} · Qty{" "}
+                        {l.quantity}
+                      </small>
+                      <div className="shop-quantity">
+                        <button
+                          disabled={busy}
+                          onClick={() => quantity(p.id, -1)}
+                          aria-label={`Remove one ${p.sku}`}
+                        >
+                          <Minus size={14} />
+                        </button>
+                        <span>{l.quantity}</span>
+                        <button
+                          disabled={
+                            busy || l.quantity >= Math.min(100, p.available)
+                          }
+                          onClick={() => quantity(p.id, 1)}
+                          aria-label={`Add one ${p.sku}`}
+                        >
+                          <Plus size={14} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="shop-line-actions">
+                      <strong>{money(p.price_sen * l.quantity)}</strong>
+                      <button
+                        type="button"
+                        className="shop-icon"
+                        disabled={busy}
+                        aria-label={`Remove ${p.sku} from order`}
+                        onClick={() => {
+                          setCart((lines) =>
+                            lines.filter((line) => line.product_id !== p.id),
+                          );
+                          key.current = "";
+                        }}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {deliveryProgress}
+            {promotionsAvailable && promotionFields}
+            {checkout ? (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!agreed) return;
+                  if (method === "duitnow" && !validProof) {
+                    setError(
+                      "Upload payment proof for the current order total first.",
+                    );
+                    return;
+                  }
+                  const form = new FormData(e.currentTarget);
+                  setBusy(true);
+                  setError("");
+                  key.current ||= crypto.randomUUID();
+                  try {
+                    const response = await fetch("/api/shop/order", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        key: key.current,
+                        expected_total_sen: total,
+                        items: cart,
+                        ...(promoValid ? { promo_code: promoCode } : {}),
+                        fulfillment,
+                        payment_method: method,
+                        ...(method === "duitnow"
+                          ? {
+                              proof_id: validProof?.id,
+                              proof_token: validProof?.token,
+                              payment_reference:
+                                form.get("payment_reference") || "",
+                            }
+                          : {}),
+                        name: form.get("name"),
+                        phone: form.get("phone"),
+                        email: form.get("email"),
+                        address:
+                          fulfillment === "delivery" ? address.trim() : "",
+                        postcode:
+                          fulfillment === "delivery" ? postcode.trim() : "",
+                        notes: form.get("notes"),
+                        website: form.get("website"),
+                      }),
+                    });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.error);
+                    router.push(`/order/${result.token}`);
+                  } catch (e) {
+                    setError(
+                      e instanceof Error
+                        ? e.message
+                        : "Unable to place your order",
+                    );
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                <fieldset disabled={busy}>
+                  <div className="shop-form-grid">
+                    <label>
+                      Full name
+                      <input
+                        name="name"
+                        autoComplete="name"
+                        maxLength={150}
+                        required
+                      />
+                    </label>
+                    <label>
+                      Contact number
+                      <input
+                        name="phone"
+                        type="tel"
+                        autoComplete="tel"
+                        maxLength={30}
+                        required
+                      />
+                    </label>
+                    <label className="wide">
+                      Email (optional)
+                      <input
+                        name="email"
+                        type="email"
+                        autoComplete="email"
+                        maxLength={254}
+                      />
+                    </label>
+                  </div>
+                  {deliveryFields}
+                  <label>
+                    Payment method
+                    <select
+                      aria-label="Online payment method"
+                      value={method}
+                      onChange={(e) => {
+                        setMethod(e.target.value);
+                        key.current = "";
+                      }}
+                      required
+                    >
+                      <option value="" disabled>
+                        Select payment method
+                      </option>
+                      {paymentOptions.map((p) => (
+                        <option value={p.id} key={p.id}>
+                          {p.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <p className="shop-checkout-note">
+                    {method === "cash"
+                      ? "Pay when you collect. Your order will be marked paid only after our team receives payment."
+                      : "Payment instructions will appear after placing your order. Transfers are manually verified by our team."}
+                  </p>
+                  {method === "duitnow" && (
+                    <section
+                      className="shop-qr-payment"
+                      aria-label="Touch 'n Go / DuitNow QR payment"
+                    >
+                      <h3>Pay CHIPSTI ENTERPRISE</h3>
+                      <p className="shop-pay-amount">
+                        Amount to pay: <strong>{money(total)}</strong>
+                      </p>
+                      {!qrVerified ? (
+                        <div role="status">
+                          <p>
+                            {serverQuote?.context === proofContext &&
+                            serverQuote.error
+                              ? serverQuote.error
+                              : fulfillment === "delivery" && !quote.confirmed
+                                ? "Enter your complete delivery address above to check the amount before paying."
+                                : "Checking the exact order amount with our server…"}
+                          </p>
+                          <button
+                            type="button"
+                            className="shop-secondary"
+                            onClick={() => setQuoteAttempt((n) => n + 1)}
+                          >
+                            Check amount again
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <Image
+                            src={OFFICIAL_DUITNOW_QR}
+                            alt="Official CHIPSTI ENTERPRISE DuitNow QR — Touch 'n Go eWallet"
+                            width={760}
+                            height={1080}
+                            className="shop-qr"
+                            unoptimized
+                          />
+                          <div className="shop-qr-links">
+                            <a
+                              href={OFFICIAL_DUITNOW_QR}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              View original QR
+                            </a>
+                            <a
+                              href={OFFICIAL_DUITNOW_QR}
+                              download="CHIPSTI-ENTERPRISE-DuitNow-QR.jpeg"
+                            >
+                              Save QR image
+                            </a>
+                          </div>
+                          <ol>
+                            <li>
+                              Open Touch ’n Go eWallet or a supported Malaysian
+                              banking app.
+                            </li>
+                            <li>
+                              Scan the QR code and confirm the recipient is
+                              CHIPSTI ENTERPRISE.
+                            </li>
+                            <li>Pay the exact order amount shown above.</li>
+                            <li>Save the successful payment receipt.</li>
+                            <li>Upload the receipt below.</li>
+                            <li>
+                              Submit your order for manual payment verification.
+                            </li>
+                          </ol>
+                          <p>
+                            On this phone, save the QR image and use your
+                            payment app’s scan-from-gallery option if supported.
+                          </p>
+                          {proof && !validProof && (
+                            <p className="shop-error">
+                              Your basket or delivery details changed. Upload
+                              proof for the updated order total.
+                            </p>
+                          )}
+                          <PaymentProofUpload
+                            key={proofContext}
+                            totalSen={total}
+                            disabled={busy}
+                            onUploaded={(value) =>
+                              setProof(
+                                value
+                                  ? { ...value, context: proofContext }
+                                  : null,
+                              )
+                            }
+                          />
+                        </>
+                      )}
+                      <label>
+                        Payment reference (optional)
+                        <input name="payment_reference" maxLength={150} />
+                      </label>
+                      <p>
+                        <strong>Pending Verification:</strong> a receipt upload
+                        does not confirm payment. Our team will check the
+                        merchant payment account.
+                      </p>
+                    </section>
+                  )}
+                  <label>
+                    Order notes (optional)
+                    <textarea name="notes" maxLength={1000} />
+                  </label>
+                  <label className="shop-honeypot" aria-hidden="true">
+                    Website
+                    <input name="website" tabIndex={-1} autoComplete="off" />
+                  </label>
+                  {orderTotals}
+                  <label className="shop-agreement">
+                    <input
+                      type="checkbox"
+                      checked={agreed}
+                      onChange={(e) => setAgreed(e.target.checked)}
+                      required
+                    />
+                    I agree to the order total and authorize CHIPSTI to use my
+                    contact details to process this order.
+                  </label>
+                  <p className="shop-checkout-note">
+                    Stock is reserved for 24 hours after your order is
+                    submitted, while it awaits payment confirmation. Save your
+                    private order link to check its status. We do not enroll you
+                    in marketing.
+                  </p>
+                  {error && (
+                    <p className="shop-error" role="alert">
+                      {error}
+                    </p>
+                  )}
+                  <button
+                    className="shop-primary full"
+                    disabled={
+                      busy ||
+                      !method ||
+                      !agreed ||
+                      total <= 0 ||
+                      (promotionsAvailable && !!promoCode && !promoValid) ||
+                      (method === "duitnow" && !validProof) ||
+                      (fulfillment === "delivery" &&
+                        (!quote.confirmed || !quote.deliverable))
+                    }
+                  >
+                    {busy ? "Placing your order…" : "Place order"}
+                    <Check size={17} />
+                  </button>
+                  <button
+                    type="button"
+                    className="shop-back"
+                    onClick={() => setCheckout(false)}
+                  >
+                    Back to basket
+                  </button>
+                </fieldset>
+              </form>
+            ) : (
+              <>
+                <div className="shop-delivery-estimate">
+                  <h3>Pickup & delivery estimate</h3>
+                  {deliveryFields}
+                </div>
+                {orderTotals}
+                <p className="shop-checkout-note">
+                  Delivery and tax estimates update with your postcode. Confirm
+                  your complete address before ordering.
+                </p>
+                <button
+                  className="shop-primary full"
+                  disabled={
+                    !store?.enabled ||
+                    (promotionsAvailable && !!promoCode && !promoValid)
+                  }
+                  onClick={beginCheckout}
+                >
+                  Continue to checkout
+                  <ArrowRight size={17} />
+                </button>
+              </>
+            )}
+          </>
+        )}
+      </section>
+    </div>
+  );
   return (
     <div className="shop">
-      <div className="shop-announcement">
-        A little more extraordinary.{" "}
-        <span>Thoughtfully selected in Malaysia.</span>
-      </div>
       <header className="shop-header">
         <Link href="/" className="shop-brand">
           <BrandLogo priority />
@@ -430,9 +1047,9 @@ export default function Shop() {
           </span>
         </Link>
         <nav>
-          <a href="#collection">The collection</a>
-          <a href="#our-story">Our story</a>
-          <a href="#shop-help">Pickup & delivery</a>
+          <a href="#collection">Products</a>
+          <Link href="/about">About</Link>
+          <a href="#shop-help">Contact</a>
         </nav>
         <button
           className="shop-basket"
@@ -448,220 +1065,155 @@ export default function Shop() {
         </button>
       </header>
       <main>
-        <section className="shop-hero">
-          <div>
-            <span className="shop-eyebrow">THE CHIPSTI COLLECTION</span>
-            <h1>
-              Small indulgences.
-              <br />
-              <em>Beautiful moments.</em>
-            </h1>
-            <p>
-              Discover delightful snacks, thoughtful gifts and everyday
-              favourites. A collection chosen with care, for you to enjoy and
-              share.
-            </p>
-            <a href="#collection" className="shop-primary">
-              Explore the collection
-              <ArrowRight size={17} />
-            </a>
-            <div className="shop-hero-note">
-              <Leaf size={16} />
-              Good things, thoughtfully selected.
-            </div>
-          </div>
-          <div className="shop-hero-art" aria-hidden="true">
-            <span className="shop-art-circle" />
-            <div className="shop-art-bag rear">
-              <span>CHIPSTI</span>
-              <Leaf size={56} strokeWidth={1} />
-              <small>MADE FOR MOMENTS</small>
-            </div>
-            <div className="shop-art-bag front">
-              <span>CHIPSTI</span>
-              <Leaf size={65} strokeWidth={1} />
-              <small>A LITTLE MORE EXTRAORDINARY</small>
-            </div>
-            <span className="shop-art-caption">THE ART OF A LITTLE TREAT</span>
-          </div>
-        </section>
-        <div className="shop-values">
+        <aside className="shop-delivery-banner">
+          <Truck size={22} aria-hidden="true" />
           <span>
-            <Leaf size={18} />
-            Curated with care
+            <strong>FREE DELIVERY</strong>
+            <span className="shop-banner-divider"> | </span>Spend RM300 &amp;
+            above within Klang Valley
+            <small>After discounts · Eligible configured postcodes only</small>
           </span>
-          <span>
-            <Store size={18} />
-            Convenient store pickup
-          </span>
-          <span>
-            <Truck size={18} />
-            Delivery available
-          </span>
-          <span>
-            <ShieldCheck size={18} />
-            Secure order handling
-          </span>
-        </div>
-        <section className="shop-collection" id="collection">
-          <div className="shop-section-heading">
-            <div>
-              <span className="shop-eyebrow">FIND YOUR NEXT FAVOURITE</span>
-              <h2>The collection</h2>
+        </aside>
+        <div className="shop-shopping-layout">
+          <section className="shop-collection" id="collection">
+            <div className="shop-section-heading">
+              <div>
+                <h1>The collection</h1>
+              </div>
+              <label className="shop-search">
+                <Search size={17} />
+                <input
+                  aria-label="Search collection"
+                  placeholder="Search products or SKU…"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </label>
             </div>
-            <label className="shop-search">
-              <Search size={17} />
-              <input
-                aria-label="Search collection"
-                placeholder="Search products or SKU…"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-            </label>
-          </div>
-          <div className="shop-categories">
-            {categories.map((c) => (
-              <button
-                key={c}
-                className={category === c ? "chosen" : ""}
-                onClick={() => setCategory(c)}
-              >
-                {c === "All" ? "All products" : c}
-              </button>
-            ))}
-          </div>
-          <aside className="shop-delivery-banner">
-            <Truck size={22} aria-hidden="true" />
-            <span>
-              <strong>FREE DELIVERY</strong>
-              <span className="shop-banner-divider"> | </span>Spend RM300 &amp;
-              above within Klang Valley
-            </span>
-          </aside>
-          {loading ? (
-            <div className="shop-loading" role="status">
-              <RefreshCw size={22} className="spin" />
-              Preparing the collection…
+            <div className="shop-categories">
+              {categories.map((c) => (
+                <button
+                  key={c}
+                  className={category === c ? "chosen" : ""}
+                  onClick={() => setCategory(c)}
+                >
+                  {c === "All" ? "All products" : c}
+                </button>
+              ))}
             </div>
-          ) : !data ? (
-            <div className="shop-unavailable" role="status">
-              <h3>Our collection is being prepared.</h3>
-              <p>{error}</p>
-              <button className="shop-secondary" onClick={() => void load()}>
-                Try again
-                <RefreshCw size={16} />
-              </button>
-            </div>
-          ) : (
-            <>
-              {!store?.enabled && (
-                <div className="shop-store-notice">
-                  Browse our collection. Online ordering is opening soon.
-                </div>
-              )}
-              <div className="shop-grid">
-                {visible.map((p, i) => (
-                  <article className="shop-product" key={p.id}>
-                    <div className={`shop-product-image shade-${i % 4}`}>
-                      {p.image_url ? (
-                        <Image
-                          src={p.image_url}
-                          alt={p.name}
-                          width={500}
-                          height={500}
-                          unoptimized
-                        />
-                      ) : (
-                        <div className="shop-mini-bag" aria-hidden="true">
-                          <span>CHIPSTI</span>
-                          <Leaf size={38} strokeWidth={1} />
-                          <small>{p.sku}</small>
-                        </div>
-                      )}
-                      <span className="shop-stock-label">
-                        {p.available > 0 ? "Available" : "Currently sold out"}
-                      </span>
-                    </div>
-                    <div className="shop-product-info">
-                      <small>
-                        {p.category ?? "The collection"} · {p.sku}
-                      </small>
-                      <h3>{p.english_name?.trim() || p.name}</h3>
-                      {p.english_name?.trim() && <p lang="zh">{p.name}</p>}
-                      <div className="shop-product-purchase">
-                        <strong>{money(p.price_sen)}</strong>
-                        <div
-                          className="shop-card-quantity"
-                          role="group"
-                          aria-label={`${p.sku} quantity`}
-                        >
-                          <button
-                            onClick={() => quantity(p.id, -1)}
-                            disabled={
-                              busy ||
-                              !store?.enabled ||
-                              p.available <= 0 ||
-                              !cart.find((l) => l.product_id === p.id)?.quantity
-                            }
-                            aria-label={`Remove ${p.sku} from basket`}
+
+            {loading ? (
+              <div className="shop-loading" role="status">
+                <RefreshCw size={22} className="spin" />
+                Preparing the collection…
+              </div>
+            ) : !data ? (
+              <div className="shop-unavailable" role="status">
+                <h3>Our collection is being prepared.</h3>
+                <p>{error}</p>
+                <button className="shop-secondary" onClick={() => void load()}>
+                  Try again
+                  <RefreshCw size={16} />
+                </button>
+              </div>
+            ) : (
+              <>
+                {!store?.enabled && (
+                  <div className="shop-store-notice">
+                    Browse our collection. Online ordering is opening soon.
+                  </div>
+                )}
+                <div className="shop-grid">
+                  {visible.map((p, i) => (
+                    <article className="shop-product" key={p.id}>
+                      <div className={`shop-product-image shade-${i % 4}`}>
+                        {p.image_url ? (
+                          <Image
+                            src={p.image_url}
+                            alt={p.name}
+                            width={500}
+                            height={500}
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="shop-mini-bag" aria-hidden="true">
+                            <span>CHIPSTI</span>
+                            <Leaf size={38} strokeWidth={1} />
+                            <small>{p.sku}</small>
+                          </div>
+                        )}
+                        <span className="shop-stock-label">
+                          {p.available > 0 ? "Available" : "Currently sold out"}
+                        </span>
+                      </div>
+                      <div className="shop-product-info">
+                        <small>
+                          {p.category ?? "The collection"} · {p.sku}
+                        </small>
+                        <h3>{p.english_name?.trim() || p.name}</h3>
+                        {p.english_name?.trim() && <p lang="zh">{p.name}</p>}
+                        <div className="shop-product-purchase">
+                          <strong>{money(p.price_sen)}</strong>
+                          <div
+                            className="shop-card-quantity"
+                            role="group"
+                            aria-label={`${p.sku} quantity`}
                           >
-                            <Minus size={18} aria-hidden="true" />
-                          </button>
-                          <output
-                            aria-label={`Selected quantity for ${p.sku}`}
-                            aria-live="polite"
-                          >
-                            {cart.find((l) => l.product_id === p.id)
-                              ?.quantity ?? 0}
-                          </output>
-                          <button
-                            onClick={() => quantity(p.id, 1)}
-                            disabled={
-                              busy ||
-                              !store?.enabled ||
-                              p.available <= 0 ||
-                              (cart.find((l) => l.product_id === p.id)
-                                ?.quantity ?? 0) >= Math.min(100, p.available)
-                            }
-                            aria-label={`Add ${p.sku} to basket`}
-                          >
-                            <Plus size={18} aria-hidden="true" />
-                          </button>
+                            <button
+                              onClick={() => quantity(p.id, -1)}
+                              disabled={
+                                busy ||
+                                !store?.enabled ||
+                                p.available <= 0 ||
+                                !cart.find((l) => l.product_id === p.id)
+                                  ?.quantity
+                              }
+                              aria-label={`Remove ${p.sku} from basket`}
+                            >
+                              <Minus size={18} aria-hidden="true" />
+                            </button>
+                            <output
+                              aria-label={`Selected quantity for ${p.sku}`}
+                              aria-live="polite"
+                            >
+                              {cart.find((l) => l.product_id === p.id)
+                                ?.quantity ?? 0}
+                            </output>
+                            <button
+                              onClick={() => quantity(p.id, 1)}
+                              disabled={
+                                busy ||
+                                !store?.enabled ||
+                                p.available <= 0 ||
+                                (cart.find((l) => l.product_id === p.id)
+                                  ?.quantity ?? 0) >= Math.min(100, p.available)
+                              }
+                              aria-label={`Add ${p.sku} to basket`}
+                            >
+                              <Plus size={18} aria-hidden="true" />
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    {p.description && (
-                      <p className="shop-product-description">
-                        {p.description}
-                      </p>
-                    )}
-                  </article>
-                ))}
-              </div>
-              {visible.length === 0 && (
-                <div className="shop-unavailable">
-                  <h3>No products found</h3>
-                  <p>Try another search or collection.</p>
+                      {p.description && (
+                        <p className="shop-product-description">
+                          {p.description}
+                        </p>
+                      )}
+                    </article>
+                  ))}
                 </div>
-              )}
-            </>
-          )}
-        </section>
-        <section className="shop-story" id="our-story">
-          <Leaf size={37} strokeWidth={1} />
-          <span className="shop-eyebrow">A NOTE FROM CHIPSTI</span>
-          <h2>
-            It’s the little things
-            <br />
-            that make a day.
-          </h2>
-          <p>
-            A favourite snack. A thoughtful gift. Something lovely to share.
-            <br />
-            We bring together products that make everyday moments feel a little
-            more special.
-          </p>
-        </section>
+                {visible.length === 0 && (
+                  <div className="shop-unavailable">
+                    <h3>No products found</h3>
+                    <p>Try another search or collection.</p>
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+          {cartPanel}
+        </div>
         <section className="shop-help" id="shop-help">
           <div>
             <Store size={23} />
@@ -681,7 +1233,15 @@ export default function Shop() {
           </div>
           <div>
             <ShieldCheck size={23} />
-            <h3>Order with confidence</h3>
+            <h3>Contact CHIPSTI</h3>
+            {store?.contact_phone && (
+              <a
+                className="shop-contact-phone"
+                href={`tel:${store.contact_phone.replace(/[^+0-9]/g, "")}`}
+              >
+                {store.contact_phone}
+              </a>
+            )}
             <p>
               Order totals are confirmed at checkout. Transfer and DuitNow
               payments are checked by our team before an order is marked paid.
@@ -689,6 +1249,19 @@ export default function Shop() {
           </div>
         </section>
       </main>
+      <button
+        className="shop-mobile-cart"
+        onClick={() => setOpen(true)}
+        aria-label={`View cart, ${count} items`}
+      >
+        <ShoppingBag size={20} />
+        <span>
+          {count} items · {money(total)}
+        </span>
+        <strong>
+          View order <ArrowRight size={16} />
+        </strong>
+      </button>
       <footer className="shop-footer">
         <div className="shop-footer-brand">
           <BrandLogo className="footer-logo" />
@@ -700,388 +1273,6 @@ export default function Shop() {
           <ArrowRight size={13} />
         </Link>
       </footer>
-      {open && (
-        <div className="shop-overlay">
-          <section
-            className="shop-cart"
-            role="dialog"
-            aria-modal="true"
-            aria-label={checkout ? "Online checkout" : "Your basket"}
-          >
-            <div className="shop-cart-heading">
-              <BrandLogo className="checkout-logo" />
-              <div>
-                <span className="shop-eyebrow">SOMETHING GOOD AWAITS</span>
-                <h2>{checkout ? "Checkout" : "Your basket"}</h2>
-              </div>
-              <button
-                className="shop-icon"
-                onClick={() => !busy && setOpen(false)}
-                aria-label="Close basket"
-              >
-                <X />
-              </button>
-            </div>
-            {!cart.length ? (
-              <div className="shop-empty">
-                <ShoppingBag size={38} strokeWidth={1} />
-                <h3>A fresh start.</h3>
-                <p>Add something lovely from the collection.</p>
-                <button className="shop-primary" onClick={() => setOpen(false)}>
-                  Explore products
-                  <ArrowRight size={16} />
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="shop-cart-items">
-                  {cart.map((l) => {
-                    const p = products.find((p) => p.id === l.product_id);
-                    if (!p) return null;
-                    return (
-                      <div className="shop-cart-item" key={p.id}>
-                        <div>
-                          <h3>{p.english_name?.trim() || p.name}</h3>
-                          {p.english_name?.trim() && (
-                            <p className="shop-cart-chinese" lang="zh">
-                              {p.name}
-                            </p>
-                          )}
-                          <small>
-                            {p.sku} · {money(p.price_sen)} each
-                          </small>
-                          <div className="shop-quantity">
-                            <button
-                              disabled={busy}
-                              onClick={() => quantity(p.id, -1)}
-                              aria-label={`Remove one ${p.sku}`}
-                            >
-                              <Minus size={14} />
-                            </button>
-                            <span>{l.quantity}</span>
-                            <button
-                              disabled={
-                                busy || l.quantity >= Math.min(100, p.available)
-                              }
-                              onClick={() => quantity(p.id, 1)}
-                              aria-label={`Add one ${p.sku}`}
-                            >
-                              <Plus size={14} />
-                            </button>
-                          </div>
-                        </div>
-                        <strong>{money(p.price_sen * l.quantity)}</strong>
-                      </div>
-                    );
-                  })}
-                </div>
-                {deliveryProgress}
-                {checkout ? (
-                  <form
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      if (!agreed) return;
-                      if (method === "duitnow" && !validProof) {
-                        setError(
-                          "Upload payment proof for the current order total first.",
-                        );
-                        return;
-                      }
-                      const form = new FormData(e.currentTarget);
-                      setBusy(true);
-                      setError("");
-                      key.current ||= crypto.randomUUID();
-                      try {
-                        const response = await fetch("/api/shop/order", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            key: key.current,
-                            expected_total_sen: total,
-                            items: cart,
-                            fulfillment,
-                            payment_method: method,
-                            ...(method === "duitnow"
-                              ? {
-                                  proof_id: validProof?.id,
-                                  proof_token: validProof?.token,
-                                  payment_reference:
-                                    form.get("payment_reference") || "",
-                                }
-                              : {}),
-                            name: form.get("name"),
-                            phone: form.get("phone"),
-                            email: form.get("email"),
-                            address:
-                              fulfillment === "delivery" ? address.trim() : "",
-                            postcode:
-                              fulfillment === "delivery" ? postcode.trim() : "",
-                            notes: form.get("notes"),
-                            website: form.get("website"),
-                          }),
-                        });
-                        const result = await response.json();
-                        if (!response.ok) throw new Error(result.error);
-                        router.push(`/order/${result.token}`);
-                      } catch (e) {
-                        setError(
-                          e instanceof Error
-                            ? e.message
-                            : "Unable to place your order",
-                        );
-                      } finally {
-                        setBusy(false);
-                      }
-                    }}
-                  >
-                    <fieldset disabled={busy}>
-                      <div className="shop-form-grid">
-                        <label>
-                          Full name
-                          <input
-                            name="name"
-                            autoComplete="name"
-                            maxLength={150}
-                            required
-                          />
-                        </label>
-                        <label>
-                          Contact number
-                          <input
-                            name="phone"
-                            type="tel"
-                            autoComplete="tel"
-                            maxLength={30}
-                            required
-                          />
-                        </label>
-                        <label className="wide">
-                          Email (optional)
-                          <input
-                            name="email"
-                            type="email"
-                            autoComplete="email"
-                            maxLength={254}
-                          />
-                        </label>
-                      </div>
-                      {deliveryFields}
-                      <label>
-                        Payment method
-                        <select
-                          aria-label="Online payment method"
-                          value={method}
-                          onChange={(e) => {
-                            setMethod(e.target.value);
-                            key.current = "";
-                          }}
-                          required
-                        >
-                          <option value="" disabled>
-                            Select payment method
-                          </option>
-                          {paymentOptions.map((p) => (
-                            <option value={p.id} key={p.id}>
-                              {p.label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <p className="shop-checkout-note">
-                        {method === "cash"
-                          ? "Pay when you collect. Your order will be marked paid only after our team receives payment."
-                          : "Payment instructions will appear after placing your order. Transfers are manually verified by our team."}
-                      </p>
-                      {method === "duitnow" && (
-                        <section
-                          className="shop-qr-payment"
-                          aria-label="Touch 'n Go / DuitNow QR payment"
-                        >
-                          <h3>Pay CHIPSTI ENTERPRISE</h3>
-                          <p className="shop-pay-amount">
-                            Amount to pay: <strong>{money(total)}</strong>
-                          </p>
-                          {!qrVerified ? (
-                            <div role="status">
-                              <p>
-                                {serverQuote?.context === proofContext &&
-                                serverQuote.error
-                                  ? serverQuote.error
-                                  : fulfillment === "delivery" &&
-                                      !quote.confirmed
-                                    ? "Enter your complete delivery address above to check the amount before paying."
-                                    : "Checking the exact order amount with our server…"}
-                              </p>
-                              <button
-                                type="button"
-                                className="shop-secondary"
-                                onClick={() => setQuoteAttempt((n) => n + 1)}
-                              >
-                                Check amount again
-                              </button>
-                            </div>
-                          ) : (
-                            <>
-                              <Image
-                                src={OFFICIAL_DUITNOW_QR}
-                                alt="Official CHIPSTI ENTERPRISE DuitNow QR — Touch 'n Go eWallet"
-                                width={760}
-                                height={1080}
-                                className="shop-qr"
-                                unoptimized
-                              />
-                              <div className="shop-qr-links">
-                                <a
-                                  href={OFFICIAL_DUITNOW_QR}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  View original QR
-                                </a>
-                                <a
-                                  href={OFFICIAL_DUITNOW_QR}
-                                  download="CHIPSTI-ENTERPRISE-DuitNow-QR.jpeg"
-                                >
-                                  Save QR image
-                                </a>
-                              </div>
-                              <ol>
-                                <li>
-                                  Open Touch ’n Go eWallet or a supported
-                                  Malaysian banking app.
-                                </li>
-                                <li>
-                                  Scan the QR code and confirm the recipient is
-                                  CHIPSTI ENTERPRISE.
-                                </li>
-                                <li>Pay the exact order amount shown above.</li>
-                                <li>Save the successful payment receipt.</li>
-                                <li>Upload the receipt below.</li>
-                                <li>
-                                  Submit your order for manual payment
-                                  verification.
-                                </li>
-                              </ol>
-                              <p>
-                                On this phone, save the QR image and use your
-                                payment app’s scan-from-gallery option if
-                                supported.
-                              </p>
-                              {proof && !validProof && (
-                                <p className="shop-error">
-                                  Your basket or delivery details changed.
-                                  Upload proof for the updated order total.
-                                </p>
-                              )}
-                              <PaymentProofUpload
-                                key={proofContext}
-                                totalSen={total}
-                                disabled={busy}
-                                onUploaded={(value) =>
-                                  setProof(
-                                    value
-                                      ? { ...value, context: proofContext }
-                                      : null,
-                                  )
-                                }
-                              />
-                            </>
-                          )}
-                          <label>
-                            Payment reference (optional)
-                            <input name="payment_reference" maxLength={150} />
-                          </label>
-                          <p>
-                            <strong>Pending Verification:</strong> a receipt
-                            upload does not confirm payment. Our team will check
-                            the merchant payment account.
-                          </p>
-                        </section>
-                      )}
-                      <label>
-                        Order notes (optional)
-                        <textarea name="notes" maxLength={1000} />
-                      </label>
-                      <label className="shop-honeypot" aria-hidden="true">
-                        Website
-                        <input
-                          name="website"
-                          tabIndex={-1}
-                          autoComplete="off"
-                        />
-                      </label>
-                      {orderTotals}
-                      <label className="shop-agreement">
-                        <input
-                          type="checkbox"
-                          checked={agreed}
-                          onChange={(e) => setAgreed(e.target.checked)}
-                          required
-                        />
-                        I agree to the order total and authorize CHIPSTI to use
-                        my contact details to process this order.
-                      </label>
-                      <p className="shop-checkout-note">
-                        Stock is reserved for 24 hours after your order is
-                        submitted, while it awaits payment confirmation. Save
-                        your private order link to check its status. We do not
-                        enroll you in marketing.
-                      </p>
-                      {error && (
-                        <p className="shop-error" role="alert">
-                          {error}
-                        </p>
-                      )}
-                      <button
-                        className="shop-primary full"
-                        disabled={
-                          busy ||
-                          !method ||
-                          !agreed ||
-                          total <= 0 ||
-                          (method === "duitnow" && !validProof) ||
-                          (fulfillment === "delivery" &&
-                            (!quote.confirmed || !quote.deliverable))
-                        }
-                      >
-                        {busy ? "Placing your order…" : "Place order"}
-                        <Check size={17} />
-                      </button>
-                      <button
-                        type="button"
-                        className="shop-back"
-                        onClick={() => setCheckout(false)}
-                      >
-                        Back to basket
-                      </button>
-                    </fieldset>
-                  </form>
-                ) : (
-                  <>
-                    <div className="shop-delivery-estimate">
-                      <h3>Pickup & delivery estimate</h3>
-                      {deliveryFields}
-                    </div>
-                    {orderTotals}
-                    <p className="shop-checkout-note">
-                      Delivery and tax estimates update with your postcode.
-                      Confirm your complete address before ordering.
-                    </p>
-                    <button
-                      className="shop-primary full"
-                      disabled={!store?.enabled}
-                      onClick={beginCheckout}
-                    >
-                      Continue to checkout
-                      <ArrowRight size={17} />
-                    </button>
-                  </>
-                )}
-              </>
-            )}
-          </section>
-        </div>
-      )}
     </div>
   );
 }
