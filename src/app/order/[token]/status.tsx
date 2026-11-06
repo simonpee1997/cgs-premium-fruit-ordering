@@ -294,7 +294,8 @@ export default function OrderStatus({ token }: { token: string }) {
               {order.items.map((i) => (
                 <div className="shop-receipt-line" key={i.sku}>
                   <div>
-                    <strong>{i.name}</strong>
+                    <strong>{i.english_name || i.name}</strong>
+                    {i.english_name && <small lang="zh">{i.name}</small>}
                     <small>
                       {i.sku} · {i.quantity} × {money(i.unit_price_sen)}
                     </small>
@@ -310,6 +311,12 @@ export default function OrderStatus({ token }: { token: string }) {
                   <span>Products</span>
                   <strong>{money(order.subtotal_sen)}</strong>
                 </div>
+                {(order.promotion_discount_sen ?? 0) > 0 && (
+                  <div>
+                    <span>Promotion · {order.promo_code}</span>
+                    <strong>−{money(order.promotion_discount_sen ?? 0)}</strong>
+                  </div>
+                )}
                 <div>
                   <span>Delivery</span>
                   <strong>{money(order.delivery_fee_sen)}</strong>

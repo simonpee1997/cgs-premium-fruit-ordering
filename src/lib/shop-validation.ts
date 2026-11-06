@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { promotionCodeSchema } from "./promotion-validation";
 const text = z.string().trim().min(1).max(150),
   id = z.uuid();
 export const deliveryAreasSchema = z
@@ -34,6 +35,7 @@ export const deliveryAreasSchema = z
 export const onlineOrderSchema = z
   .object({
     key: id,
+    promo_code: promotionCodeSchema.optional(),
     expected_total_sen: z.number().int().min(1).max(100000000),
     name: text,
     phone: z
@@ -177,6 +179,7 @@ export const onlineManagementSchema = z.discriminatedUnion("operation", [
 
 export const onlineQuoteSchema = z
   .object({
+    promo_code: promotionCodeSchema.optional(),
     items: z
       .array(
         z.object({

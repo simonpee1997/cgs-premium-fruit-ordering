@@ -217,9 +217,8 @@ export default function Promotions({ data }: { data: AppData }) {
         server clock.
       </p>
       <p className="notice">
-        Promotion management is ready for review. The customer promo-code field
-        and checkout integration are reserved for Phase 2 and are not enabled in
-        this release.
+        Published codes are available in the online storefront. Each order keeps
+        its applied discount, even when you edit an offer later.
       </p>
       {error && (
         <p className="error" role="alert">

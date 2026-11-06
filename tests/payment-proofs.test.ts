@@ -209,6 +209,7 @@ beforeAll(async () => {
   await db.exec(
     readFileSync("supabase/migrations/008_promotion_management.sql", "utf8"),
   );
+  await db.exec(readFileSync("supabase/migrations/009_promotion_checkout.sql", "utf8"));
 }, 30000);
 afterAll(async () => {
   await db.close();

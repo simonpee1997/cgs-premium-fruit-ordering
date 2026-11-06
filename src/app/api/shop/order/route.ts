@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     });
     if (error) {
       const safe =
-        /stock|unavailable|not configured|postcode|different order|amount|quantity|Duplicate|Too many|Prices|Refresh/i.test(
+        /Promotion|promo|Minimum|eligible|stack|stock|unavailable|not configured|postcode|different order|amount|quantity|Duplicate|Too many|Prices|Refresh/i.test(
           error.message,
         )
           ? error.message

@@ -122,7 +122,7 @@ test("customer can request delivery, see exact fees and submit a manual payment 
   await page.getByRole("button", { name: "Continue to checkout" }).click();
   await page.getByLabel("Full name").fill("Test customer");
   await page.getByLabel("Contact number").fill("0100000000");
-  await page.getByLabel("Fulfillment method").selectOption("delivery");
+  await page.getByRole("button", { name: "Delivery", exact: true }).click();
   await page
     .getByLabel("Complete Malaysian delivery address")
     .fill(state.address);
@@ -312,7 +312,7 @@ test("delivery promotion updates with address, quantities, outside areas and pic
       .getByRole("button", { name: "Add LF-02 to basket", exact: true })
       .click();
   await page.getByRole("button", { name: "Open basket, 3 items" }).click();
-  await page.getByLabel("Fulfillment method").selectOption("delivery");
+  await page.getByRole("button", { name: "Delivery", exact: true }).click();
   await expect(
     page.getByText(
       "Select your delivery area to check free delivery eligibility.",
@@ -350,11 +350,11 @@ test("delivery promotion updates with address, quantities, outside areas and pic
   await expect(page.locator(".shop-grand-total")).toContainText("333.90");
   await page.getByLabel("Postcode", { exact: true }).fill("50100");
   await expect(page.locator(".shop-grand-total")).toContainText("323.30");
-  await page.getByLabel("Fulfillment method").selectOption("pickup");
+  await page.getByRole("button", { name: "Pickup", exact: true }).click();
   await expect(page.getByText("Pickup has no delivery fee.")).toBeVisible();
   await expect(page.locator(".shop-grand-total")).toContainText("318.00");
   await page.getByRole("button", { name: "Continue to checkout" }).click();
-  await page.getByLabel("Fulfillment method").selectOption("delivery");
+  await page.getByRole("button", { name: "Delivery", exact: true }).click();
   await expect(page.getByLabel("Postcode", { exact: true })).toHaveValue(
     "50100",
   );
@@ -394,7 +394,7 @@ for (const [price, fee] of [
     await page.getByRole("button", { name: "Continue to checkout" }).click();
     await page.getByLabel("Full name").fill("Test customer");
     await page.getByLabel("Contact number").fill("0100000000");
-    await page.getByLabel("Fulfillment method").selectOption("delivery");
+    await page.getByRole("button", { name: "Delivery", exact: true }).click();
     await page
       .getByLabel("Delivery area", { exact: true })
       .selectOption("50000");

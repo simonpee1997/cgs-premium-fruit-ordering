@@ -35,6 +35,9 @@ export type ShopSettings = {
 };
 export type Catalogue = { store: ShopSettings; products: ShopProduct[] };
 export type PublicOrder = {
+  promo_code?: string | null;
+  promotion_discount_sen?: number;
+  promotion_snapshot?: { percent_bps?: number; name?: string };
   order_number: string;
   status: string;
   fulfillment: "pickup" | "delivery";
@@ -63,6 +66,8 @@ export type PublicOrder = {
   items: {
     sku: string;
     name: string;
+    english_name?: string | null;
+    promotion_discount_sen?: number;
     quantity: number;
     unit_price_sen: number;
     total_sen: number;

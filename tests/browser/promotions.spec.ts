@@ -115,7 +115,7 @@ test("owner reviews, creates and saves a guest promotion in Malaysia time", asyn
   await expect(
     page.getByText("CGSVIP20 · v1", { exact: true }).first(),
   ).toBeVisible();
-  await expect(page.getByText(/reserved for Phase 2/)).toBeVisible();
+  await expect(page.getByText(/Published codes are available/)).toBeVisible();
   await page
     .getByRole("button", { name: "Create New Offer", exact: true })
     .click();

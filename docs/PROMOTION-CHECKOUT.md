@@ -1,0 +1,11 @@
+# Phase 2 — shared order summary and promotion checkout
+
+The same cart appears beside the catalogue on desktop and in a mobile/tablet sheet opened from the sticky cart bar. Item lists scroll separately; English-first names, Chinese secondary names, packaging/description, thumbnails, quantities, removal and totals share one state. Fulfillment buttons preserve the existing exact-postcode delivery configuration and pickup address. No state dropdown existed in CHIPSTI, so the complete address field still collects state; no coverage assumptions were added.
+
+Guest codes use the Phase 1 evaluator. Changing products/prices or code revalidates eligibility. The order total, shipping progress and tax use the product subtotal **after** discounts. A pending/invalid code blocks checkout until corrected or removed. The server validates the code again at placement, inside the same transaction as stock and redemption reservations. Code rows serialize quota allocation; unique order/redemption constraints plus request fingerprints make retries idempotent.
+
+Migration `009_promotion_checkout.sql` must follow 008 in CHIPSTI POS only. It adds frozen order/line discounts and English name snapshots, updates the existing server quote/placement RPCs, and extends the private payment-confirmation implementation while retaining the proof/authorization wrappers. Discount allocations sum exactly to the order discount, and sale/refund lines use their discounted values. Old records receive zero discounts; old product/order/sale values are not repriced. Expired reservations cannot be confirmed. Editing, pausing or expiring a code after a valid order was placed does not reprice that reserved order.
+
+The approved release activates only the exact seeded CGSVIP20 draft. It expires after 30 November 2026 23:59:59 MYT. Existing paused/ended campaigns are not resumed by deployment.
+
+DuitNow remains the supplied original QR, private receipt uploads and manual verification. A changed cart, code, delivery address or total invalidates the client proof context. QR is displayed only after a fresh server quote agrees with the payable amount. Cash pickup and bank transfers keep their established workflow. No automatic payment confirmation or new gateway was introduced.

@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            /stock|fulfillment|postcode|address|amount|quantity|Duplicate/i.test(
+            /Promotion|promo|Minimum|eligible|stack|stock|fulfillment|postcode|address|amount|quantity|Duplicate/i.test(
               error.message,
             )
               ? error.message

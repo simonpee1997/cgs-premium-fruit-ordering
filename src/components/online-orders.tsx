@@ -269,7 +269,12 @@ export default function OnlineOrders({
               return (
                 <div className="summary-row" key={i.id}>
                   <span>
-                    {i.sku} · {i.name} × {i.quantity}
+                    {i.sku} · {i.english_name || i.name} × {i.quantity}
+                    {i.english_name && (
+                      <small style={{ display: "block" }} lang="zh">
+                        {i.name}
+                      </small>
+                    )}
                     {returned > 0 && (
                       <small style={{ display: "block" }}>
                         Refunded: {returned} · Remaining to fulfill:{" "}
@@ -277,10 +282,18 @@ export default function OnlineOrders({
                       </small>
                     )}
                   </span>
-                  <strong>{money(i.total_sen)}</strong>
+                  <strong>
+                    {money(i.total_sen - (i.promotion_discount_sen ?? 0))}
+                  </strong>
                 </div>
               );
             })}
+            {(order.promotion_discount_sen ?? 0) > 0 && (
+              <div className="summary-row">
+                <span>Promotion · {order.promo_code}</span>
+                <strong>−{money(order.promotion_discount_sen)}</strong>
+              </div>
+            )}
             {order.payment_method === "duitnow" && (
               <div className="panel">
                 <h3>

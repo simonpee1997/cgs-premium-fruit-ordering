@@ -1421,3 +1421,300 @@
   width: 90px;
   height: 90px;
 }
+
+/* Order summary: one shared cart, embedded on desktop and a sheet on mobile. */
+.shop-shopping-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 370px;
+  gap: 28px;
+  max-width: 1840px;
+  margin: auto;
+  padding: 0 28px;
+  align-items: start;
+}
+.shop-shopping-layout .shop-collection {
+  min-width: 0;
+  margin: 0;
+  padding: 30px 0;
+  max-width: none;
+}
+.shop-shopping-layout .shop-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+.shop-cart-shell {
+  position: sticky;
+  top: 18px;
+  margin-top: 30px;
+  min-width: 0;
+}
+.shop-cart-shell .shop-cart {
+  width: 100%;
+  max-width: none;
+  height: auto;
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px;
+  border: 1px solid var(--shop-line);
+  border-radius: 16px;
+  box-shadow: 0 8px 30px #322c2408;
+}
+.shop-cart-backdrop,
+.shop-mobile-cart {
+  display: none;
+}
+.shop-cart-shell .shop-cart-heading {
+  position: sticky;
+  top: -20px;
+  background: var(--shop-paper);
+  z-index: 2;
+  padding: 12px 0;
+  margin-top: -12px;
+  gap: 10px;
+}
+.shop-cart-shell .shop-cart-heading h2 {
+  font-size: 25px;
+}
+.shop-cart-shell .checkout-logo {
+  display: block;
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+.shop-cart-shell .shop-cart-heading > .shop-icon {
+  display: none;
+}
+.shop-cart-items {
+  max-height: 220px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.shop-cart-shell .shop-cart-item {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 14px 0;
+  align-items: start;
+}
+.shop-cart-thumb {
+  height: 48px;
+  background: #eee8dc;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: var(--shop-gold);
+}
+.shop-cart-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.shop-cart-shell .shop-cart-item h3 {
+  font-family: Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0;
+}
+.shop-cart-shell .shop-cart-chinese {
+  font-size: 11px;
+  margin: 4px 0;
+}
+.shop-cart-shell .shop-cart-item small {
+  font-size: 10px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.shop-line-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.shop-cart-shell .shop-quantity {
+  margin-top: 8px;
+}
+.shop-cart-shell .shop-quantity button {
+  width: 32px;
+  height: 32px;
+}
+.shop-cart-shell .shop-form-grid {
+  grid-template-columns: 1fr;
+}
+.shop-cart-shell .shop-totals {
+  margin: 18px 0;
+}
+.shop-cart-shell .shop-primary.full {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  box-shadow: 0 8px 0 8px var(--shop-paper);
+  min-height: 46px;
+}
+.shop-fulfillment {
+  display: flex;
+  border: 1px solid var(--shop-line);
+  border-radius: 30px;
+  padding: 4px;
+  gap: 4px;
+  margin: 14px 0;
+}
+.shop-fulfillment button {
+  flex: 1;
+  padding: 10px;
+  border: 0;
+  border-radius: 25px;
+  background: transparent;
+  color: var(--shop-ink);
+  font-size: 12px;
+  min-height: 42px;
+}
+.shop-fulfillment button[aria-pressed="true"] {
+  background: #eee7d9;
+  font-weight: 600;
+}
+.shop-promotion {
+  border-top: 1px solid var(--shop-line);
+  padding-top: 16px;
+  margin-top: 14px;
+}
+.shop-promotion > label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.shop-promo-entry {
+  display: flex;
+  gap: 8px;
+}
+.shop-promo-entry input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--shop-line);
+  border-radius: 7px;
+  padding: 11px;
+  background: white;
+  font-size: 13px;
+  text-transform: uppercase;
+}
+.shop-promo-entry button {
+  padding: 10px 16px;
+  min-height: 44px;
+}
+.shop-promotion .shop-back {
+  font-size: 11px;
+  margin-top: 8px;
+}
+.shop-promo-message,
+.shop-promo-saving {
+  color: #48643d !important;
+  font-size: 12px;
+}
+@media (min-width: 1600px) {
+  .shop-shopping-layout .shop-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (max-width: 1050px) {
+  .shop-shopping-layout {
+    display: block;
+    padding: 0 22px;
+  }
+  .shop-cart-shell {
+    display: none;
+    position: fixed;
+    inset: 0;
+    margin: 0;
+    z-index: 90;
+    top: 0;
+  }
+  .shop-cart-shell.is-open {
+    display: flex;
+    justify-content: flex-end;
+  }
+  .shop-cart-backdrop {
+    display: block;
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: #241f1870;
+    backdrop-filter: blur(3px);
+  }
+  .shop-cart-shell .shop-cart {
+    position: relative;
+    width: 470px;
+    max-width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 18px 0 0 18px;
+    padding: 22px;
+  }
+  .shop-cart-shell .shop-cart-heading > .shop-icon {
+    display: flex;
+  }
+  .shop-cart-shell .shop-cart-heading {
+    top: -22px;
+  }
+  .shop-mobile-cart {
+    display: flex;
+    position: fixed;
+    bottom: 12px;
+    left: 16px;
+    right: 16px;
+    z-index: 50;
+    background: #3c281e;
+    color: #fff8e8;
+    border: 0;
+    border-radius: 12px;
+    min-height: 58px;
+    padding: 12px 18px;
+    gap: 12px;
+    align-items: center;
+    box-shadow: 0 5px 20px #241f1830;
+  }
+  .shop-mobile-cart strong {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 12px;
+  }
+  .shop-mobile-cart span {
+    font-size: 13px;
+  }
+  .shop-footer {
+    padding-bottom: 100px;
+  }
+  .shop-cart-shell .shop-quantity button {
+    width: 42px;
+    height: 42px;
+  }
+}
+@media (max-width: 600px) {
+  .shop-shopping-layout {
+    padding: 0 14px;
+  }
+  .shop-shopping-layout .shop-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .shop-cart-shell .shop-cart {
+    border-radius: 16px 16px 0 0;
+    width: 100%;
+    padding: 18px;
+  }
+  .shop-cart-shell .shop-cart-heading {
+    top: -18px;
+  }
+  .shop-cart-shell .shop-cart-item {
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+  }
+  .shop-cart-items {
+    max-height: 30dvh;
+  }
+}
