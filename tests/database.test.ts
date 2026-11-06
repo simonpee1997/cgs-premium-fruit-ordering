@@ -53,6 +53,9 @@ beforeAll(async () => {
     readFileSync("supabase/migrations/004_online_store.sql", "utf8"),
   );
   await db.exec(
+    readFileSync("supabase/migrations/005_product_english_names.sql", "utf8"),
+  );
+  await db.exec(
     readFileSync("supabase/migrations/006_delivery_areas.sql", "utf8"),
   );
   await db.exec(
@@ -61,7 +64,9 @@ beforeAll(async () => {
   await db.exec(
     readFileSync("supabase/migrations/008_promotion_management.sql", "utf8"),
   );
-  await db.exec(readFileSync("supabase/migrations/009_promotion_checkout.sql", "utf8"));
+  await db.exec(
+    readFileSync("supabase/migrations/009_promotion_checkout.sql", "utf8"),
+  );
   await db.exec(
     `insert into auth.users values('${owner}'),('${cashier}'),('${manager}');insert into profiles(id,display_name,branch_id,role) values('${owner}','Owner','20000000-0000-0000-0000-000000000001','owner'),('${cashier}','Cashier','20000000-0000-0000-0000-000000000001','cashier'),('${manager}','Manager','20000000-0000-0000-0000-000000000001','manager');`,
   );

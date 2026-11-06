@@ -1,0 +1,1659 @@
+{
+  "note": "Generated only from an isolated PostgreSQL database applying repository migrations 001–007. Not a production export.",
+  "columns": [
+    {
+      "table_name": "audit_logs",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "audit_logs",
+      "column_name": "staff_id",
+      "data_type": "uuid",
+      "not_null": false
+    },
+    {
+      "table_name": "audit_logs",
+      "column_name": "action",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "audit_logs",
+      "column_name": "entity_id",
+      "data_type": "uuid",
+      "not_null": false
+    },
+    {
+      "table_name": "audit_logs",
+      "column_name": "details",
+      "data_type": "jsonb",
+      "not_null": true
+    },
+    {
+      "table_name": "audit_logs",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "branches",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "branches",
+      "column_name": "business_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "branches",
+      "column_name": "name",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "branches",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "businesses",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "businesses",
+      "column_name": "name",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "businesses",
+      "column_name": "ssm",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "businesses",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "cash_movements",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "cash_movements",
+      "column_name": "session_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "cash_movements",
+      "column_name": "amount_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "cash_movements",
+      "column_name": "reason",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "cash_movements",
+      "column_name": "staff_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "cash_movements",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "cashier_sessions",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "cashier_sessions",
+      "column_name": "branch_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "cashier_sessions",
+      "column_name": "cashier_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "cashier_sessions",
+      "column_name": "opening_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "cashier_sessions",
+      "column_name": "actual_sen",
+      "data_type": "bigint",
+      "not_null": false
+    },
+    {
+      "table_name": "cashier_sessions",
+      "column_name": "expected_sen",
+      "data_type": "bigint",
+      "not_null": false
+    },
+    {
+      "table_name": "cashier_sessions",
+      "column_name": "difference_sen",
+      "data_type": "bigint",
+      "not_null": false
+    },
+    {
+      "table_name": "cashier_sessions",
+      "column_name": "status",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "cashier_sessions",
+      "column_name": "started_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "cashier_sessions",
+      "column_name": "ended_at",
+      "data_type": "timestamp with time zone",
+      "not_null": false
+    },
+    {
+      "table_name": "cashier_sessions",
+      "column_name": "approved_by",
+      "data_type": "uuid",
+      "not_null": false
+    },
+    {
+      "table_name": "cashier_sessions",
+      "column_name": "approved_at",
+      "data_type": "timestamp with time zone",
+      "not_null": false
+    },
+    {
+      "table_name": "cashier_sessions",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "customers",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "customers",
+      "column_name": "name",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "customers",
+      "column_name": "phone",
+      "data_type": "text",
+      "not_null": false
+    },
+    {
+      "table_name": "customers",
+      "column_name": "email",
+      "data_type": "text",
+      "not_null": false
+    },
+    {
+      "table_name": "customers",
+      "column_name": "notes",
+      "data_type": "text",
+      "not_null": false
+    },
+    {
+      "table_name": "customers",
+      "column_name": "loyalty_points",
+      "data_type": "integer",
+      "not_null": true
+    },
+    {
+      "table_name": "customers",
+      "column_name": "membership_tier",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "customers",
+      "column_name": "marketing_consent",
+      "data_type": "boolean",
+      "not_null": true
+    },
+    {
+      "table_name": "customers",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "customers",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "goods_received",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "goods_received",
+      "column_name": "purchase_order_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "goods_received",
+      "column_name": "staff_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "goods_received",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "held_orders",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "held_orders",
+      "column_name": "cashier_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "held_orders",
+      "column_name": "branch_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "held_orders",
+      "column_name": "label",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "held_orders",
+      "column_name": "cart",
+      "data_type": "jsonb",
+      "not_null": true
+    },
+    {
+      "table_name": "held_orders",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "held_orders",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "inventory",
+      "column_name": "branch_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "inventory",
+      "column_name": "product_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "inventory",
+      "column_name": "quantity",
+      "data_type": "integer",
+      "not_null": true
+    },
+    {
+      "table_name": "inventory",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "online_order_events",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "online_order_events",
+      "column_name": "order_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "online_order_events",
+      "column_name": "event",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "online_order_events",
+      "column_name": "staff_id",
+      "data_type": "uuid",
+      "not_null": false
+    },
+    {
+      "table_name": "online_order_events",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "online_order_items",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "online_order_items",
+      "column_name": "order_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "online_order_items",
+      "column_name": "product_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "online_order_items",
+      "column_name": "sku",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "online_order_items",
+      "column_name": "name",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "online_order_items",
+      "column_name": "category_name",
+      "data_type": "text",
+      "not_null": false
+    },
+    {
+      "table_name": "online_order_items",
+      "column_name": "quantity",
+      "data_type": "integer",
+      "not_null": true
+    },
+    {
+      "table_name": "online_order_items",
+      "column_name": "unit_price_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "online_order_items",
+      "column_name": "total_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "idempotency_key",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "request_hash",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "tracking_token",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "order_number",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "branch_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "status",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "customer_name",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "phone",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "email",
+      "data_type": "text",
+      "not_null": false
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "fulfillment",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "address",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "postcode",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "notes",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "payment_method",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "payment_reference",
+      "data_type": "text",
+      "not_null": false
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "instructions",
+      "data_type": "jsonb",
+      "not_null": true
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "subtotal_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "delivery_fee_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "tax_bps",
+      "data_type": "integer",
+      "not_null": true
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "tax_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "total_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "sale_id",
+      "data_type": "uuid",
+      "not_null": false
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "expires_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "confirmed_by",
+      "data_type": "uuid",
+      "not_null": false
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "confirmed_at",
+      "data_type": "timestamp with time zone",
+      "not_null": false
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "cancellation_reason",
+      "data_type": "text",
+      "not_null": false
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "standard_delivery_fee_sen",
+      "data_type": "bigint",
+      "not_null": false
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "delivery_discount_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "delivery_area_name",
+      "data_type": "text",
+      "not_null": false
+    },
+    {
+      "table_name": "online_orders",
+      "column_name": "payment_proof_received",
+      "data_type": "boolean",
+      "not_null": true
+    },
+    {
+      "table_name": "online_store_settings",
+      "column_name": "branch_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "online_store_settings",
+      "column_name": "enabled",
+      "data_type": "boolean",
+      "not_null": true
+    },
+    {
+      "table_name": "online_store_settings",
+      "column_name": "allow_pickup",
+      "data_type": "boolean",
+      "not_null": true
+    },
+    {
+      "table_name": "online_store_settings",
+      "column_name": "allow_delivery",
+      "data_type": "boolean",
+      "not_null": true
+    },
+    {
+      "table_name": "online_store_settings",
+      "column_name": "allow_cash_pickup",
+      "data_type": "boolean",
+      "not_null": true
+    },
+    {
+      "table_name": "online_store_settings",
+      "column_name": "pickup_address",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "online_store_settings",
+      "column_name": "contact_phone",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "online_store_settings",
+      "column_name": "delivery_fee_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "online_store_settings",
+      "column_name": "delivery_postcode_prefixes",
+      "data_type": "text[]",
+      "not_null": true
+    },
+    {
+      "table_name": "online_store_settings",
+      "column_name": "delivery_note",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "online_store_settings",
+      "column_name": "bank_name",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "online_store_settings",
+      "column_name": "bank_account_name",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "online_store_settings",
+      "column_name": "bank_account_number",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "online_store_settings",
+      "column_name": "duitnow_qr_url",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "online_store_settings",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "online_store_settings",
+      "column_name": "delivery_areas",
+      "data_type": "jsonb",
+      "not_null": true
+    },
+    {
+      "table_name": "payment_proofs",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "payment_proofs",
+      "column_name": "claim_token",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "payment_proofs",
+      "column_name": "upload_key",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "payment_proofs",
+      "column_name": "request_bucket",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "payment_proofs",
+      "column_name": "original_filename",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "payment_proofs",
+      "column_name": "mime_type",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "payment_proofs",
+      "column_name": "byte_size",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "payment_proofs",
+      "column_name": "sha256",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "payment_proofs",
+      "column_name": "total_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "payment_proofs",
+      "column_name": "object_path",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "payment_proofs",
+      "column_name": "status",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "payment_proofs",
+      "column_name": "order_id",
+      "data_type": "uuid",
+      "not_null": false
+    },
+    {
+      "table_name": "payment_proofs",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "payment_proofs",
+      "column_name": "verified_at",
+      "data_type": "timestamp with time zone",
+      "not_null": false
+    },
+    {
+      "table_name": "payment_proofs",
+      "column_name": "expires_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "payments",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "payments",
+      "column_name": "sale_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "payments",
+      "column_name": "method",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "payments",
+      "column_name": "amount_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "payments",
+      "column_name": "tendered_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "payments",
+      "column_name": "reference",
+      "data_type": "text",
+      "not_null": false
+    },
+    {
+      "table_name": "payments",
+      "column_name": "verification",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "product_categories",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "product_categories",
+      "column_name": "name",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "product_categories",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "product_costs",
+      "column_name": "product_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "product_costs",
+      "column_name": "cost_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "product_costs",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "products",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "products",
+      "column_name": "sku",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "products",
+      "column_name": "name",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "products",
+      "column_name": "english_name",
+      "data_type": "text",
+      "not_null": false
+    },
+    {
+      "table_name": "products",
+      "column_name": "description",
+      "data_type": "text",
+      "not_null": false
+    },
+    {
+      "table_name": "products",
+      "column_name": "barcode",
+      "data_type": "text",
+      "not_null": false
+    },
+    {
+      "table_name": "products",
+      "column_name": "category_id",
+      "data_type": "uuid",
+      "not_null": false
+    },
+    {
+      "table_name": "products",
+      "column_name": "price_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "products",
+      "column_name": "image_url",
+      "data_type": "text",
+      "not_null": false
+    },
+    {
+      "table_name": "products",
+      "column_name": "archived",
+      "data_type": "boolean",
+      "not_null": true
+    },
+    {
+      "table_name": "products",
+      "column_name": "low_stock",
+      "data_type": "integer",
+      "not_null": true
+    },
+    {
+      "table_name": "products",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "products",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "profiles",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "profiles",
+      "column_name": "display_name",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "profiles",
+      "column_name": "branch_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "profiles",
+      "column_name": "role",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "profiles",
+      "column_name": "active",
+      "data_type": "boolean",
+      "not_null": true
+    },
+    {
+      "table_name": "profiles",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "profiles",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "promotions",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "promotions",
+      "column_name": "name",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "promotions",
+      "column_name": "percent_bps",
+      "data_type": "integer",
+      "not_null": true
+    },
+    {
+      "table_name": "promotions",
+      "column_name": "starts_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "promotions",
+      "column_name": "ends_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "promotions",
+      "column_name": "active",
+      "data_type": "boolean",
+      "not_null": true
+    },
+    {
+      "table_name": "promotions",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "purchase_order_items",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "purchase_order_items",
+      "column_name": "purchase_order_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "purchase_order_items",
+      "column_name": "product_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "purchase_order_items",
+      "column_name": "quantity",
+      "data_type": "integer",
+      "not_null": true
+    },
+    {
+      "table_name": "purchase_order_items",
+      "column_name": "cost_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "purchase_orders",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "purchase_orders",
+      "column_name": "supplier_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "purchase_orders",
+      "column_name": "branch_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "purchase_orders",
+      "column_name": "status",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "purchase_orders",
+      "column_name": "staff_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "purchase_orders",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "purchase_orders",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "refund_items",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "refund_items",
+      "column_name": "refund_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "refund_items",
+      "column_name": "sale_item_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "refund_items",
+      "column_name": "quantity",
+      "data_type": "integer",
+      "not_null": true
+    },
+    {
+      "table_name": "refund_items",
+      "column_name": "amount_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "refund_items",
+      "column_name": "restock",
+      "data_type": "boolean",
+      "not_null": true
+    },
+    {
+      "table_name": "refunds",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "refunds",
+      "column_name": "sale_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "refunds",
+      "column_name": "staff_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "refunds",
+      "column_name": "reason",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "refunds",
+      "column_name": "total_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "refunds",
+      "column_name": "tax_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "refunds",
+      "column_name": "method",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "refunds",
+      "column_name": "session_id",
+      "data_type": "uuid",
+      "not_null": false
+    },
+    {
+      "table_name": "refunds",
+      "column_name": "idempotency_key",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "refunds",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "sale_item_costs",
+      "column_name": "sale_item_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "sale_item_costs",
+      "column_name": "cost_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "sale_items",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "sale_items",
+      "column_name": "sale_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "sale_items",
+      "column_name": "product_id",
+      "data_type": "uuid",
+      "not_null": false
+    },
+    {
+      "table_name": "sale_items",
+      "column_name": "sku",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "sale_items",
+      "column_name": "name",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "sale_items",
+      "column_name": "quantity",
+      "data_type": "integer",
+      "not_null": true
+    },
+    {
+      "table_name": "sale_items",
+      "column_name": "unit_price_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "sale_items",
+      "column_name": "discount_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "sale_items",
+      "column_name": "total_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "sale_items",
+      "column_name": "category_name",
+      "data_type": "text",
+      "not_null": false
+    },
+    {
+      "table_name": "sale_voids",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "sale_voids",
+      "column_name": "sale_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "sale_voids",
+      "column_name": "staff_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "sale_voids",
+      "column_name": "reason",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "sale_voids",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "sales",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "sales",
+      "column_name": "idempotency_key",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "sales",
+      "column_name": "receipt_number",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "sales",
+      "column_name": "cashier_name",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "sales",
+      "column_name": "branch_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "sales",
+      "column_name": "cashier_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "sales",
+      "column_name": "session_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "sales",
+      "column_name": "customer_id",
+      "data_type": "uuid",
+      "not_null": false
+    },
+    {
+      "table_name": "sales",
+      "column_name": "subtotal_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "sales",
+      "column_name": "discount_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "sales",
+      "column_name": "tax_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "sales",
+      "column_name": "total_sen",
+      "data_type": "bigint",
+      "not_null": true
+    },
+    {
+      "table_name": "sales",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "shop_rate_limits",
+      "column_name": "bucket",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "shop_rate_limits",
+      "column_name": "window_start",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "shop_rate_limits",
+      "column_name": "hits",
+      "data_type": "integer",
+      "not_null": true
+    },
+    {
+      "table_name": "staff_roles",
+      "column_name": "name",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "staff_roles",
+      "column_name": "description",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "stock_movements",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "stock_movements",
+      "column_name": "branch_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "stock_movements",
+      "column_name": "product_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "stock_movements",
+      "column_name": "quantity",
+      "data_type": "integer",
+      "not_null": true
+    },
+    {
+      "table_name": "stock_movements",
+      "column_name": "movement_type",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "stock_movements",
+      "column_name": "staff_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "stock_movements",
+      "column_name": "reference_id",
+      "data_type": "uuid",
+      "not_null": false
+    },
+    {
+      "table_name": "stock_movements",
+      "column_name": "reason",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "stock_movements",
+      "column_name": "batch",
+      "data_type": "text",
+      "not_null": false
+    },
+    {
+      "table_name": "stock_movements",
+      "column_name": "expires_on",
+      "data_type": "date",
+      "not_null": false
+    },
+    {
+      "table_name": "stock_movements",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "suppliers",
+      "column_name": "id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "suppliers",
+      "column_name": "name",
+      "data_type": "text",
+      "not_null": true
+    },
+    {
+      "table_name": "suppliers",
+      "column_name": "phone",
+      "data_type": "text",
+      "not_null": false
+    },
+    {
+      "table_name": "suppliers",
+      "column_name": "email",
+      "data_type": "text",
+      "not_null": false
+    },
+    {
+      "table_name": "suppliers",
+      "column_name": "notes",
+      "data_type": "text",
+      "not_null": false
+    },
+    {
+      "table_name": "suppliers",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "suppliers",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    },
+    {
+      "table_name": "system_settings",
+      "column_name": "branch_id",
+      "data_type": "uuid",
+      "not_null": true
+    },
+    {
+      "table_name": "system_settings",
+      "column_name": "tax_bps",
+      "data_type": "integer",
+      "not_null": true
+    },
+    {
+      "table_name": "system_settings",
+      "column_name": "cashier_discount_bps",
+      "data_type": "integer",
+      "not_null": true
+    },
+    {
+      "table_name": "system_settings",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "not_null": true
+    }
+  ],
+  "functions": [
+    {
+      "signature": "manage_online_order_before_delivery(text,jsonb)",
+      "source_md5": "b9018ea82f1d2a5ab394f1a04505503e",
+      "security_definer": true,
+      "return_type": "uuid",
+      "settings": [
+        "search_path=public, pg_temp"
+      ]
+    },
+    {
+      "signature": "online_order_status(uuid)",
+      "source_md5": "6ad8f4812f1542f8d1debecaf4295123",
+      "security_definer": true,
+      "return_type": "jsonb",
+      "settings": [
+        "search_path=public, pg_temp"
+      ]
+    },
+    {
+      "signature": "place_online_order(jsonb,text)",
+      "source_md5": "2b553ca3560595f2eb3464dc81402bf7",
+      "security_definer": true,
+      "return_type": "jsonb",
+      "settings": [
+        "search_path=public, pg_temp"
+      ]
+    },
+    {
+      "signature": "quote_online_order(jsonb)",
+      "source_md5": "cee53c9b6e58151b304e9acf23697082",
+      "security_definer": true,
+      "return_type": "jsonb",
+      "settings": [
+        "search_path=public, pg_temp"
+      ]
+    },
+    {
+      "signature": "require_role(text[])",
+      "source_md5": "634e36a24b6b7685dfcf06afd4781bfc",
+      "security_definer": true,
+      "return_type": "void",
+      "settings": [
+        "search_path=public, pg_temp"
+      ]
+    },
+    {
+      "signature": "retail_action(text,jsonb)",
+      "source_md5": "0c627b1107148a3529e6d55ada41071e",
+      "security_definer": true,
+      "return_type": "uuid",
+      "settings": [
+        "search_path=public, pg_temp"
+      ]
+    },
+    {
+      "signature": "staff_branch()",
+      "source_md5": "e675ec409d7a3cb89266119a52808537",
+      "security_definer": true,
+      "return_type": "uuid",
+      "settings": [
+        "search_path=public, pg_temp"
+      ]
+    },
+    {
+      "signature": "staff_role()",
+      "source_md5": "4ae090d7e0c7db9f886a27b0a5edd9eb",
+      "security_definer": true,
+      "return_type": "text",
+      "settings": [
+        "search_path=public, pg_temp"
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "table_name": "promotions",
+      "polname": "read_promotions",
+      "polcmd": "r",
+      "expression": "(staff_role() IS NOT NULL)"
+    },
+    {
+      "table_name": "audit_logs",
+      "polname": "read_audit",
+      "polcmd": "r",
+      "expression": "(staff_role() = 'owner'::text)"
+    }
+  ]
+}

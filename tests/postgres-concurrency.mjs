@@ -29,6 +29,7 @@ try {
     "002_voids",
     "003_metadata",
     "004_online_store",
+    "005_product_english_names",
     "006_delivery_areas",
     "007_payment_proofs",
     "008_promotion_management",

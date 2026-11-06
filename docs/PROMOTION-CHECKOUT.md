@@ -6,6 +6,6 @@ Guest codes use the Phase 1 evaluator. Changing products/prices or code revalida
 
 Migration `009_promotion_checkout.sql` must follow 008 in CHIPSTI POS only. It adds frozen order/line discounts and English name snapshots, updates the existing server quote/placement RPCs, and extends the private payment-confirmation implementation while retaining the proof/authorization wrappers. Discount allocations sum exactly to the order discount, and sale/refund lines use their discounted values. Old records receive zero discounts; old product/order/sale values are not repriced. Expired reservations cannot be confirmed. Editing, pausing or expiring a code after a valid order was placed does not reprice that reserved order.
 
-The approved release activates only the exact seeded CGSVIP20 draft. It expires after 30 November 2026 23:59:59 MYT. Existing paused/ended campaigns are not resumed by deployment.
+The reviewed migration leaves CGSVIP20 as a draft. Schema deployment and campaign publication require fresh explicit approval. The campaign includes the complete final second of 30 November 2026 23:59:59 MYT. Existing paused/ended campaigns are not resumed by deployment.
 
 DuitNow remains the supplied original QR, private receipt uploads and manual verification. A changed cart, code, delivery address or total invalidates the client proof context. QR is displayed only after a fresh server quote agrees with the payable amount. Cash pickup and bank transfers keep their established workflow. No automatic payment confirmation or new gateway was introduced.

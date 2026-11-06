@@ -77,6 +77,7 @@ beforeAll(async () => {
     "002_voids",
     "003_metadata",
     "004_online_store",
+    "005_product_english_names",
     "006_delivery_areas",
     "007_payment_proofs",
     "008_promotion_management",
@@ -375,7 +376,9 @@ it("does not allow a different branch owner to inspect, edit or simulate offers"
 });
 it("keeps codes disabled for legacy POS even if legacy toggle is called", async () => {
   const { id } = await save();
-  await rpc("retail_action", ["promotion_toggle", { id, active: true }]);
+  await expect(
+    rpc("retail_action", ["promotion_toggle", { id, active: true }]),
+  ).rejects.toThrow(/Marketing/);
   expect((await row(id)).active).toBe(false);
 });
 it("quotes guests only with service privileges and current server time", async () => {

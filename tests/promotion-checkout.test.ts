@@ -61,6 +61,7 @@ beforeAll(async () => {
     "002_voids",
     "003_metadata",
     "004_online_store",
+    "005_product_english_names",
     "006_delivery_areas",
     "007_payment_proofs",
     "008_promotion_management",
@@ -73,7 +74,7 @@ beforeAll(async () => {
       ),
     );
   await db.exec(
-    `insert into auth.users values('${owner}');insert into profiles(id,display_name,branch_id,role) values('${owner}','Owner','20000000-0000-0000-0000-000000000001','owner');update inventory set quantity=1000;update system_settings set tax_bps=0;update products set price_sen=10000,english_name='Original Golden Arrowhead' where sku='LF-02';update online_store_settings set enabled=true,allow_pickup=true,allow_delivery=true,allow_cash_pickup=true,pickup_address='Test pickup address',bank_name='Test bank',bank_account_name='Test store',bank_account_number='TEST-ONLY',delivery_fee_sen=2000,delivery_areas='[{"id":"60000000-0000-0000-0000-000000000001","name":"Test Klang Valley","postcodes":["48000"],"standard_fee_sen":1500,"free_delivery_eligible":true}]';`,
+    `insert into auth.users values('${owner}');insert into profiles(id,display_name,branch_id,role) values('${owner}','Owner','20000000-0000-0000-0000-000000000001','owner');update promotions set publication_status='published' where code='CGSVIP20';update inventory set quantity=1000;update system_settings set tax_bps=0;update products set price_sen=10000,english_name='Original Golden Arrowhead' where sku='LF-02';update online_store_settings set enabled=true,allow_pickup=true,allow_delivery=true,allow_cash_pickup=true,pickup_address='Test pickup address',bank_name='Test bank',bank_account_name='Test store',bank_account_number='TEST-ONLY',delivery_fee_sen=2000,delivery_areas='[{"id":"60000000-0000-0000-0000-000000000001","name":"Test Klang Valley","postcodes":["48000"],"standard_fee_sen":1500,"free_delivery_eligible":true}]';`,
   );
   product = (
     await db.query<{ id: string }>("select id from products where sku='LF-02'")

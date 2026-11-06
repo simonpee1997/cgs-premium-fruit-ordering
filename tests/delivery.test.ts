@@ -168,6 +168,7 @@ beforeAll(async () => {
     "002_voids.sql",
     "003_metadata.sql",
     "004_online_store.sql",
+    "005_product_english_names.sql",
   ])
     await db.exec(
       readFileSync(`supabase/migrations/${name}`, "utf8").replace(
@@ -194,7 +195,9 @@ beforeAll(async () => {
   await db.exec(
     readFileSync("supabase/migrations/008_promotion_management.sql", "utf8"),
   );
-  await db.exec(readFileSync("supabase/migrations/009_promotion_checkout.sql", "utf8"));
+  await db.exec(
+    readFileSync("supabase/migrations/009_promotion_checkout.sql", "utf8"),
+  );
 }, 30000);
 afterAll(async () => {
   await db.close();

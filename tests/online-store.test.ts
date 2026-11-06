@@ -87,6 +87,7 @@ beforeAll(async () => {
     "002_voids.sql",
     "003_metadata.sql",
     "004_online_store.sql",
+    "005_product_english_names.sql",
     "006_delivery_areas.sql",
     "007_payment_proofs.sql",
     "008_promotion_management.sql",
