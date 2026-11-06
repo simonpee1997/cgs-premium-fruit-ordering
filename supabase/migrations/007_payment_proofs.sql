@@ -1,0 +1,215 @@
+begin;
+do $$begin
+ if to_regprocedure('public.shop_delivery_quote(uuid,text,text,text,bigint,bigint)') is null then raise exception 'STOP: Apply migration 006 first in CHIPSTI POS.';end if;
+ if not exists(select 1 from public.businesses where id='10000000-0000-0000-0000-000000000001' and name='CHIPSTI ENTERPRISE' and ssm='202603232290 (RA0139100-V)') then raise exception 'STOP: This is not CHIPSTI POS.';end if;
+end$$;
+
+insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types) values('payment-proofs','payment-proofs',false,5242880,array['image/jpeg','image/png','application/pdf']) on conflict(id) do nothing;
+do $$begin
+ if exists(select 1 from storage.buckets where id='payment-proofs' and (public is distinct from false or file_size_limit is distinct from 5242880 or allowed_mime_types is distinct from array['image/jpeg','image/png','application/pdf'])) then raise exception 'STOP: The existing payment-proofs bucket does not have the required private upload restrictions.';end if;
+end$$;
+-- No anonymous/authenticated Storage policies are granted for this bucket.
+-- Only the server issues object-scoped write tokens or authorized downloads.
+create policy payment_proofs_server_only on storage.objects as restrictive for all to anon,authenticated
+ using(bucket_id<>'payment-proofs') with check(bucket_id<>'payment-proofs');
+create table payment_proofs (
+ id uuid primary key default gen_random_uuid(),
+ claim_token uuid not null default gen_random_uuid(),
+ upload_key uuid unique not null,
+ request_bucket text not null,
+ original_filename text not null check(length(original_filename) between 1 and 150),
+ mime_type text not null check(mime_type in ('image/jpeg','image/png','application/pdf')),
+ byte_size bigint not null check(byte_size between 1 and 5242880),
+ sha256 text not null check(sha256~'^[0-9a-f]{64}$'),
+ total_sen bigint not null check(total_sen between 1 and 100000000),
+ object_path text unique not null,
+ status text not null default 'staged' check(status in ('staged','ready','invalid')),
+ order_id uuid unique references online_orders(id),
+ created_at timestamptz not null default now(), verified_at timestamptz,
+ expires_at timestamptz not null default now()+interval '24 hours'
+);
+alter table payment_proofs enable row level security;
+revoke all on payment_proofs from public,anon,authenticated;
+create unique index payment_proofs_bound_sha_idx on payment_proofs(sha256) where order_id is not null;
+create index payment_proofs_expiry_idx on payment_proofs(expires_at) where order_id is null;
+alter table online_orders add column payment_proof_received boolean not null default false;
+
+create function prepare_payment_proof(payload jsonb,client_bucket text) returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
+declare p payment_proofs; extension text; proof_id uuid:=gen_random_uuid();
+begin
+ if client_bucket is null or length(client_bucket)<>64 then raise exception 'Invalid request bucket';end if;
+ if payload->>'mime_type' not in ('image/jpeg','image/png','application/pdf') or (payload->>'byte_size')::bigint not between 1 and 5242880 or coalesce(payload->>'sha256','')!~'^[0-9a-f]{64}$' or length(coalesce(payload->>'filename','')) not between 1 and 150 or (payload->>'total_sen')::bigint not between 1 and 100000000 then raise exception 'Invalid receipt metadata';end if;
+ perform pg_advisory_xact_lock(hashtextextended(payload->>'key',1));
+ select * into p from payment_proofs where upload_key=(payload->>'key')::uuid for update;
+ if found then
+  if p.request_bucket<>client_bucket or p.sha256<>payload->>'sha256' or p.mime_type<>payload->>'mime_type' or p.byte_size<>(payload->>'byte_size')::bigint or p.total_sen<>(payload->>'total_sen')::bigint or p.status='invalid' or p.expires_at<=now() then raise exception 'Start a new receipt upload';end if;
+ else
+  extension:=case payload->>'mime_type' when 'image/jpeg' then 'jpg' when 'image/png' then 'png' else 'pdf' end;
+  insert into payment_proofs(id,upload_key,request_bucket,original_filename,mime_type,byte_size,sha256,total_sen,object_path) values(proof_id,(payload->>'key')::uuid,client_bucket,payload->>'filename',payload->>'mime_type',(payload->>'byte_size')::bigint,payload->>'sha256',(payload->>'total_sen')::bigint,proof_id::text||'.'||extension) returning * into p;
+ end if;
+ return jsonb_build_object('id',p.id,'token',p.claim_token,'path',p.object_path,'ready',p.status='ready');
+end$$;
+revoke all on function prepare_payment_proof(jsonb,text) from public,anon,authenticated;
+grant execute on function prepare_payment_proof(jsonb,text) to service_role;
+
+create function payment_proof_for_upload(proof_id uuid,proof_token uuid) returns jsonb language sql stable security definer set search_path=public,pg_temp as $$
+ select jsonb_build_object('path',p.object_path,'filename',p.original_filename,'mime_type',p.mime_type,'byte_size',p.byte_size,'sha256',p.sha256,'ready',p.status='ready') from payment_proofs p where p.id=proof_id and p.claim_token=proof_token and p.status in ('staged','ready') and p.expires_at>now() and p.order_id is null
+$$;
+revoke all on function payment_proof_for_upload(uuid,uuid) from public,anon,authenticated;
+grant execute on function payment_proof_for_upload(uuid,uuid) to service_role;
+create function complete_payment_proof(proof_id uuid,proof_token uuid,valid boolean) returns void language plpgsql security definer set search_path=public,pg_temp as $$begin
+ update payment_proofs set status=case when valid then 'ready' else 'invalid' end,verified_at=case when valid then now() else null end where id=proof_id and claim_token=proof_token and expires_at>now() and order_id is null and status in ('staged','ready');
+ if not found then raise exception 'Receipt upload is unavailable';end if;
+end$$;
+revoke all on function complete_payment_proof(uuid,uuid,boolean) from public,anon,authenticated;
+grant execute on function complete_payment_proof(uuid,uuid,boolean) to service_role;
+
+create function staff_payment_proof(order_id uuid) returns jsonb language plpgsql stable security definer set search_path=public,pg_temp as $$
+declare result jsonb;
+begin
+ perform require_role(array['owner','manager']);
+ select jsonb_build_object('id',p.id,'path',p.object_path,'filename',p.original_filename,'mime_type',p.mime_type,'byte_size',p.byte_size) into result from payment_proofs p join online_orders o on o.id=p.order_id where p.order_id=staff_payment_proof.order_id and o.branch_id=staff_branch() and p.status='ready';
+ return result;
+end$$;
+revoke all on function staff_payment_proof(uuid) from public,anon,service_role;
+grant execute on function staff_payment_proof(uuid) to authenticated;
+
+-- The original catalogue remains whitelisted. The new QR method uses only the
+-- supplied static merchant image; historical order data is not rewritten.
+alter function shop_catalogue() rename to shop_catalogue_before_proofs;
+revoke all on function shop_catalogue_before_proofs() from public,anon,authenticated,service_role;
+create function shop_catalogue() returns jsonb language sql stable security definer set search_path=public,pg_temp as $$
+ select jsonb_set(shop_catalogue_before_proofs(),'{store,duitnow_available}','true'::jsonb)
+$$;
+revoke all on function shop_catalogue() from public;
+grant execute on function shop_catalogue() to anon,authenticated,service_role;
+
+-- Read-only server quote before the customer pays. Final placement revalidates
+-- prices, inventory and delivery in its existing transaction.
+create function quote_online_order(payload jsonb) returns jsonb language plpgsql stable security definer set search_path=public,pg_temp as $$
+declare s online_store_settings; line jsonb; p products; q integer; subtotal bigint:=0; rate integer; quote jsonb; fee bigint; tax bigint;
+begin
+ select * into strict s from online_store_settings where branch_id='20000000-0000-0000-0000-000000000001' and enabled;
+ if (payload->>'fulfillment'='pickup' and not s.allow_pickup) or (payload->>'fulfillment'='delivery' and not s.allow_delivery) then raise exception 'Selected fulfillment method is unavailable';end if;
+ if jsonb_array_length(payload->'items') not between 1 and 50 then raise exception 'Invalid cart';end if;
+ if (select count(*) from jsonb_array_elements(payload->'items'))<>(select count(distinct value->>'product_id') from jsonb_array_elements(payload->'items')) then raise exception 'Duplicate products';end if;
+ for line in select value from jsonb_array_elements(payload->'items') loop
+  select * into strict p from products where id=(line->>'product_id')::uuid and not archived;
+  q:=(line->>'quantity')::integer;
+  if q not between 1 and 100 then raise exception 'Invalid quantity';end if;
+  if not exists(select 1 from inventory i where i.branch_id=s.branch_id and i.product_id=p.id and i.quantity-reserved_stock(i.branch_id,p.id)>=q) then raise exception 'Not enough stock for %',p.sku;end if;
+  subtotal:=subtotal+p.price_sen*q;
+ end loop;
+ if subtotal>100000000 then raise exception 'Order amount exceeds limit';end if;
+ quote:=shop_delivery_quote(s.branch_id,payload->>'fulfillment',payload->>'postcode',payload->>'address',subtotal,0);
+ fee:=(quote->>'fee_sen')::bigint;
+ select tax_bps into strict rate from system_settings where branch_id=s.branch_id;
+ tax:=((subtotal+fee)*rate+5000)/10000;
+ return quote||jsonb_build_object('subtotal_sen',subtotal,'tax_sen',tax,'total_sen',subtotal+fee+tax);
+end$$;
+revoke all on function quote_online_order(jsonb) from public,anon,authenticated;
+grant execute on function quote_online_order(jsonb) to service_role;
+
+create or replace function place_online_order(payload jsonb,client_bucket text) returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
+declare setting online_store_settings; old online_orders; oid uuid; token uuid; number text; line jsonb; p products; q integer; subtotal bigint:=0; fee bigint; tax bigint; rate integer; total bigint; request_fingerprint text; hits_now integer; quote jsonb; proof payment_proofs;
+begin
+ if client_bucket is null or length(client_bucket)<>64 then raise exception 'Invalid request bucket';end if;
+ request_fingerprint:=md5((payload-'website')::text);
+ perform pg_advisory_xact_lock(hashtextextended(payload->>'key',0));
+ select * into old from online_orders where idempotency_key=(payload->>'key')::uuid;
+ if found then
+  if old.request_hash<>request_fingerprint then raise exception 'This request identifier belongs to a different order. Start a new checkout.';end if;
+  return jsonb_build_object('token',old.tracking_token,'order_number',old.order_number);end if;
+ if length(coalesce(payload->>'website',''))>0 then raise exception 'Invalid order';end if;
+ if payload->>'payment_method'='duitnow' then
+  select * into proof from payment_proofs where id=(payload->>'proof_id')::uuid and claim_token=(payload->>'proof_token')::uuid and status='ready' and order_id is null and expires_at>now() for update;
+  if not found then raise exception 'Upload a valid payment proof before placing a QR order';end if;
+  if proof.total_sen<>(payload->>'expected_total_sen')::bigint then raise exception 'Receipt was uploaded for a different order amount';end if;
+ end if;
+ insert into shop_rate_limits(bucket,window_start,hits) values(client_bucket,now(),1)
+ on conflict(bucket) do update set hits=case when shop_rate_limits.window_start<now()-interval '1 hour' then 1 else shop_rate_limits.hits+1 end,
+ window_start=case when shop_rate_limits.window_start<now()-interval '1 hour' then now() else shop_rate_limits.window_start end returning hits into hits_now;
+ if hits_now>10 then raise exception 'Too many orders. Please try again later.';end if;
+ -- Discard expired rate buckets; no customer IP address is stored.
+ delete from shop_rate_limits where window_start<now()-interval '2 days';
+ select * into strict setting from online_store_settings where branch_id='20000000-0000-0000-0000-000000000001' and enabled for share;
+ if payload->>'fulfillment'='pickup' and not setting.allow_pickup then raise exception 'Pickup is unavailable';end if;
+ if payload->>'fulfillment'='delivery' and not setting.allow_delivery then raise exception 'Delivery is unavailable';end if;
+ if payload->>'payment_method'='cash' and (payload->>'fulfillment'<>'pickup' or not setting.allow_cash_pickup) then raise exception 'Cash is available only for eligible store pickup';end if;
+ if payload->>'payment_method'='bank' and (setting.bank_name='' or setting.bank_account_name='' or setting.bank_account_number='') then raise exception 'Bank transfer is not configured';end if;
+ if payload->>'fulfillment'='delivery' and cardinality(setting.delivery_postcode_prefixes)>0 and not exists(select 1 from unnest(setting.delivery_postcode_prefixes) prefix where payload->>'postcode' like prefix||'%') then raise exception 'This postcode is outside our delivery area';end if;
+ if jsonb_array_length(payload->'items') not between 1 and 50 then raise exception 'Invalid cart';end if;
+ if (select count(*) from jsonb_array_elements(payload->'items'))<>(select count(distinct value->>'product_id') from jsonb_array_elements(payload->'items')) then raise exception 'Duplicate products';end if;
+ perform 1 from inventory where branch_id=setting.branch_id and product_id in(select (value->>'product_id')::uuid from jsonb_array_elements(payload->'items')) order by product_id for update;
+ for line in select value from jsonb_array_elements(payload->'items') loop
+  select * into strict p from products where id=(line->>'product_id')::uuid and not archived for share;
+  q:=(line->>'quantity')::integer;if q not between 1 and 100 then raise exception 'Invalid quantity';end if;
+  if not exists(select 1 from inventory i where i.branch_id=setting.branch_id and i.product_id=p.id and i.quantity-reserved_stock(i.branch_id,p.id)>=q) then raise exception 'Not enough stock for %',p.sku;end if;
+  subtotal:=subtotal+p.price_sen*q;if subtotal>100000000 then raise exception 'Order amount exceeds limit';end if;
+ end loop;
+ -- All prices and discounts come from the server. Online product discounts are
+ -- currently unsupported; a caller may not supply a discount or shipping override.
+ if payload ? 'discount_sen' or payload ? 'delivery_fee_sen' or payload ? 'subtotal_sen' then raise exception 'Client-supplied prices or discounts are not accepted';end if;
+ quote:=shop_delivery_quote(setting.branch_id,payload->>'fulfillment',payload->>'postcode',payload->>'address',subtotal,0);
+ fee:=(quote->>'fee_sen')::bigint;
+ select tax_bps into strict rate from system_settings where branch_id=setting.branch_id;
+ tax:=((subtotal+fee)*rate+5000)/10000;total:=subtotal+fee+tax;
+ if coalesce((payload->>'expected_total_sen')::bigint,-1)<>total then raise exception 'Prices or delivery charges changed. Refresh your basket before ordering.';end if;
+ number:='WEB-'||to_char(now() at time zone 'Asia/Kuala_Lumpur','YYYYMMDD')||'-'||lpad(nextval('online_order_sequence')::text,6,'0');
+ insert into online_orders(idempotency_key,request_hash,order_number,branch_id,customer_name,phone,email,fulfillment,address,postcode,notes,payment_method,instructions,subtotal_sen,delivery_fee_sen,tax_bps,tax_sen,total_sen,standard_delivery_fee_sen,delivery_discount_sen,delivery_area_name)
+ values((payload->>'key')::uuid,request_fingerprint,number,setting.branch_id,payload->>'name',payload->>'phone',nullif(payload->>'email',''),payload->>'fulfillment',coalesce(payload->>'address',''),coalesce(payload->>'postcode',''),coalesce(payload->>'notes',''),payload->>'payment_method',jsonb_build_object('pickup_address',setting.pickup_address,'contact_phone',setting.contact_phone,'bank_name',setting.bank_name,'bank_account_name',setting.bank_account_name,'bank_account_number',setting.bank_account_number,'duitnow_qr_url',case when payload->>'payment_method'='duitnow' then 'https://chipsti.com/branding/chipsti-duitnow.original.jpeg' else setting.duitnow_qr_url end,'delivery_note',setting.delivery_note),subtotal,fee,rate,tax,total,(quote->>'standard_fee_sen')::bigint,(quote->>'delivery_discount_sen')::bigint,quote->>'area_name')
+ returning id,tracking_token into oid,token;
+ for line in select value from jsonb_array_elements(payload->'items') loop
+  select * into strict p from products where id=(line->>'product_id')::uuid;
+  q:=(line->>'quantity')::integer;
+  insert into online_order_items(order_id,product_id,sku,name,category_name,quantity,unit_price_sen,total_sen) values(oid,p.id,p.sku,p.name,(select name from product_categories where id=p.category_id),q,p.price_sen,p.price_sen*q);
+ end loop;
+ update inventory set quantity=quantity where branch_id=setting.branch_id and product_id in(select product_id from online_order_items where order_id=oid);
+ insert into online_order_events(order_id,event) values(oid,'Order received; payment not verified');
+ if payload->>'payment_method'='duitnow' then
+  update payment_proofs set order_id=oid where id=proof.id;
+  update online_orders set payment_proof_received=true,status='payment_submitted',payment_reference=coalesce(nullif(trim(payload->>'payment_reference'),''),'Payment proof '||proof.id::text) where id=oid;
+  insert into online_order_events(order_id,event) values(oid,'Payment proof received; PENDING VERIFICATION');
+ end if;
+ return jsonb_build_object('token',token,'order_number',number);
+end$$;
+revoke all on function place_online_order(jsonb,text) from public,anon,authenticated;
+grant execute on function place_online_order(jsonb,text) to service_role;
+
+
+
+alter function submit_online_payment(uuid,text) rename to submit_online_payment_before_proofs;
+revoke all on function submit_online_payment_before_proofs(uuid,text) from public,anon,authenticated,service_role;
+create function submit_online_payment(token uuid,reference text,proof_id uuid default null,proof_token uuid default null) returns void language plpgsql security definer set search_path=public,pg_temp as $$
+declare o online_orders; p payment_proofs;
+begin
+ select * into strict o from online_orders where tracking_token=token and status in ('awaiting_payment','payment_submitted') and expires_at>now() for update;
+ if o.payment_method='duitnow' and not o.payment_proof_received then
+  select * into p from payment_proofs where id=proof_id and claim_token=proof_token and status='ready' and order_id is null and expires_at>now() for update;
+  if not found or p.total_sen<>o.total_sen then raise exception 'Upload a valid payment proof for this order amount';end if;
+  update payment_proofs set order_id=o.id where id=p.id;
+  update online_orders set payment_proof_received=true where id=o.id;
+ end if;
+ perform submit_online_payment_before_proofs(token,reference);
+end$$;
+revoke all on function submit_online_payment(uuid,text,uuid,uuid) from public,anon,authenticated;
+grant execute on function submit_online_payment(uuid,text,uuid,uuid) to service_role;
+
+alter function manage_online_order(text,jsonb) rename to manage_online_order_before_proofs;
+revoke all on function manage_online_order_before_proofs(text,jsonb) from public,anon,authenticated,service_role;
+create function manage_online_order(action text,payload jsonb) returns uuid language plpgsql security definer set search_path=public,pg_temp as $$begin
+ perform require_role(array['owner','manager']);
+ if action='confirm_payment' and exists(select 1 from online_orders o where o.id=(payload->>'id')::uuid and o.branch_id=staff_branch() and o.payment_method='duitnow' and o.sale_id is null and not exists(select 1 from payment_proofs p where p.order_id=o.id and p.status='ready')) then raise exception 'A QR payment proof must be received before verification';end if;
+ return manage_online_order_before_proofs(action,payload);
+end$$;
+revoke all on function manage_online_order(text,jsonb) from public,anon,service_role;
+grant execute on function manage_online_order(text,jsonb) to authenticated;
+
+alter function online_order_status(uuid) rename to online_order_status_before_proofs;
+revoke all on function online_order_status_before_proofs(uuid) from public,anon,authenticated,service_role;
+create function online_order_status(token uuid) returns jsonb language sql stable security definer set search_path=public,pg_temp as $$
+ select online_order_status_before_proofs(token)||jsonb_build_object('payment_proof_received',o.payment_proof_received) from online_orders o where o.tracking_token=token
+$$;
+revoke all on function online_order_status(uuid) from public,anon,authenticated;
+grant execute on function online_order_status(uuid) to service_role;
+commit;
