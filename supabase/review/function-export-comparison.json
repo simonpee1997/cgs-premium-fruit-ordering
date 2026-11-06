@@ -1,0 +1,58 @@
+{
+  "supplied_exports": 8,
+  "matched_function_bodies": 8,
+  "matched_canonical_definitions": 8,
+  "production_sql_executed_by_assistant": false,
+  "full_schema_compatibility_confirmed": false,
+  "remaining": "Read-only raw metadata comparison; no change to existing compatibility guards",
+  "functions": [
+    {
+      "signature": "manage_online_order_before_delivery(text,jsonb)",
+      "body_matches_baseline": true,
+      "canonical_definition_matches_reconstructed_baseline": true,
+      "canonical_definition_sha256": "01e1fc591ab7576449c7dbae732d96606067e784946ae1fd6594a838d9c9a74d"
+    },
+    {
+      "signature": "online_order_status(uuid)",
+      "body_matches_baseline": true,
+      "canonical_definition_matches_reconstructed_baseline": true,
+      "canonical_definition_sha256": "338508accf6e243ae59a7c51d8e71ef9f145554c496f8e0699c1e86e45f7ff2a"
+    },
+    {
+      "signature": "place_online_order(jsonb,text)",
+      "body_matches_baseline": true,
+      "canonical_definition_matches_reconstructed_baseline": true,
+      "canonical_definition_sha256": "cb204d16982314c79b02f807212c26c6522b23ddc943f133d5cb42f1d9d41a21"
+    },
+    {
+      "signature": "quote_online_order(jsonb)",
+      "body_matches_baseline": true,
+      "canonical_definition_matches_reconstructed_baseline": true,
+      "canonical_definition_sha256": "6971271e809f1e5516670ca99d7a04728521346a32223401ad47948df77ea452"
+    },
+    {
+      "signature": "require_role(text[])",
+      "body_matches_baseline": true,
+      "canonical_definition_matches_reconstructed_baseline": true,
+      "canonical_definition_sha256": "7824821cfcf573c9bfc57159f124d87315894e8014c63e5abb6081a891e5399a"
+    },
+    {
+      "signature": "retail_action(text,jsonb)",
+      "body_matches_baseline": true,
+      "canonical_definition_matches_reconstructed_baseline": true,
+      "canonical_definition_sha256": "170339594fffc887e698277b62518cbb8e546c7a0e09aa66d4b0ed8db2ae99f4"
+    },
+    {
+      "signature": "staff_branch()",
+      "body_matches_baseline": true,
+      "canonical_definition_matches_reconstructed_baseline": true,
+      "canonical_definition_sha256": "79fec82e6a6d18222970bd6532886f0c0e0cb167d8eb616723fcfdca593a7309"
+    },
+    {
+      "signature": "staff_role()",
+      "body_matches_baseline": true,
+      "canonical_definition_matches_reconstructed_baseline": true,
+      "canonical_definition_sha256": "8fcfd1c545be00984fc5f868e22377db5a0de2f3f5c4a6a5e6b3c63bade3b44c"
+    }
+  ]
+}
