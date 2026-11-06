@@ -1,5 +1,6 @@
 "use client";
 import BrandLogo from "@/components/brand-logo";
+import Promotions from "@/components/promotions";
 import OnlineOrders from "@/components/online-orders";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -16,6 +17,7 @@ import {
   Wallet,
   UserRoundCog,
   Settings,
+  Tag,
   Search,
   Plus,
   Minus,
@@ -60,6 +62,7 @@ const navigation = [
   ["Reports", ChartNoAxesCombined],
   ["Cashier Closing", Wallet],
   ["Staff Management", UserRoundCog],
+  ["Marketing", Tag],
   ["Settings", Settings],
 ] as const;
 const methods = [
@@ -207,6 +210,7 @@ export default function Retail({ configured }: { configured: boolean }) {
   }
   const activePromos = (t.promotions ?? []).filter(
     (p) =>
+      !p.code &&
       p.active &&
       new Date(p.starts_at) <= new Date() &&
       new Date(p.ends_at) >= new Date(),
@@ -550,7 +554,9 @@ export default function Retail({ configured }: { configured: boolean }) {
               ([name]) =>
                 role === "owner" ||
                 (privileged &&
-                  !["Staff Management", "Settings"].includes(name)) ||
+                  !["Staff Management", "Settings", "Marketing"].includes(
+                    name,
+                  )) ||
                 [
                   "Point of Sale",
                   "Customers",
@@ -2169,60 +2175,68 @@ export default function Retail({ configured }: { configured: boolean }) {
                       </button>
                       <button
                         className="secondary"
-                        onClick={() =>
-                          form("New promotion", "promotion", [
-                            {
-                              name: "name",
-                              label: "Promotion name",
-                              required: true,
-                            },
-                            {
-                              name: "percent_bps",
-                              label: "Discount (%)",
-                              type: "number",
-                              required: true,
-                            },
-                            {
-                              name: "starts_at",
-                              label: "Starts (Malaysia time)",
-                              type: "datetime-local",
-                              required: true,
-                            },
-                            {
-                              name: "ends_at",
-                              label: "Ends (Malaysia time)",
-                              type: "datetime-local",
-                              required: true,
-                            },
-                          ])
-                        }
+                        onClick={() => setPage("Marketing")}
                       >
-                        Add promotion
+                        Manage promo codes
                       </button>
                     </div>
                   </section>
                   <section className="panel">
-                    <h2>Promotions</h2>
-                    {(t.promotions ?? []).map((p) => (
-                      <div className="summary-row" key={p.id}>
-                        <span>
-                          {p.name} · {p.percent_bps / 100}% ·{" "}
-                          {p.active ? "Enabled" : "Disabled"}
-                        </span>
-                        <button
-                          className="text-button"
-                          disabled={busy}
-                          onClick={() =>
-                            void act("promotion_toggle", {
-                              id: p.id,
-                              active: !p.active,
-                            }).catch(() => {})
-                          }
-                        >
-                          {p.active ? "Disable" : "Enable"}
-                        </button>
-                      </div>
-                    ))}
+                    <h2>Legacy POS promotions (without codes)</h2>
+                    <button
+                      className="secondary"
+                      onClick={() =>
+                        form("New promotion", "promotion", [
+                          {
+                            name: "name",
+                            label: "Promotion name",
+                            required: true,
+                          },
+                          {
+                            name: "percent_bps",
+                            label: "Discount (%)",
+                            type: "number",
+                            required: true,
+                          },
+                          {
+                            name: "starts_at",
+                            label: "Starts (Malaysia time)",
+                            type: "datetime-local",
+                            required: true,
+                          },
+                          {
+                            name: "ends_at",
+                            label: "Ends (Malaysia time)",
+                            type: "datetime-local",
+                            required: true,
+                          },
+                        ])
+                      }
+                    >
+                      New POS offer (without code)
+                    </button>
+                    {(t.promotions ?? [])
+                      .filter((p) => !p.code)
+                      .map((p) => (
+                        <div className="summary-row" key={p.id}>
+                          <span>
+                            {p.name} · {p.percent_bps / 100}% ·{" "}
+                            {p.active ? "Enabled" : "Disabled"}
+                          </span>
+                          <button
+                            className="text-button"
+                            disabled={busy}
+                            onClick={() =>
+                              void act("promotion_toggle", {
+                                id: p.id,
+                                active: !p.active,
+                              }).catch(() => {})
+                            }
+                          >
+                            {p.active ? "Disable" : "Enable"}
+                          </button>
+                        </div>
+                      ))}
                   </section>
                   <h2>Audit trail</h2>
                   <Table
@@ -2237,6 +2251,9 @@ export default function Retail({ configured }: { configured: boolean }) {
                 </>
               )}
             </>
+          )}
+          {page === "Marketing" && role === "owner" && (
+            <Promotions data={data} />
           )}
           {(t.held_orders ?? []).length > 0 && page === "Point of Sale" && (
             <section className="held">

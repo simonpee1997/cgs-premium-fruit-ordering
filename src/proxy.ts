@@ -28,5 +28,6 @@ export const config = {
     "/api/data",
     "/api/export",
     "/api/online-orders/:path*",
+    "/api/promotions",
   ],
 };
