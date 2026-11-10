@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { customerDeliveryNote } from "@/lib/customer-delivery-note";
 import {
   ArrowRight,
   ShoppingBag,
@@ -149,6 +150,11 @@ export default function Shop() {
   }, [load]);
   const products = data?.products ?? [],
     store = data?.store;
+  const deliveryNote = customerDeliveryNote(store?.delivery_note);
+  const footerDeliveryNote = customerDeliveryNote(
+    store?.delivery_note ||
+      "Delivery availability and charges are shown at checkout when online ordering is open.",
+  );
   const count = cart.reduce((n, l) => n + l.quantity, 0),
     subtotal = cart.reduce(
       (n, l) =>
@@ -464,7 +470,7 @@ export default function Shop() {
               }}
             />
           </label>
-          <p className="shop-checkout-note">{store?.delivery_note}</p>
+          {deliveryNote && <p className="shop-checkout-note">{deliveryNote}</p>}
           <p className="shop-checkout-note">
             {store?.free_delivery_all_postcodes
               ? "Delivery to all Malaysian postcodes. Free delivery on product orders of RM300 or more after discounts."
@@ -1095,7 +1101,7 @@ export default function Shop() {
                 <Search size={17} />
                 <input
                   aria-label="Search collection"
-                  placeholder="Search products or SKU…"
+                  placeholder="Search products..."
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                 />
@@ -1237,10 +1243,7 @@ export default function Shop() {
           <div>
             <Truck size={23} />
             <h3>A little joy, delivered</h3>
-            <p>
-              {store?.delivery_note ||
-                "Delivery availability and charges are shown at checkout when online ordering is open."}
-            </p>
+            {footerDeliveryNote && <p>{footerDeliveryNote}</p>}
           </div>
           <div>
             <ShieldCheck size={23} />

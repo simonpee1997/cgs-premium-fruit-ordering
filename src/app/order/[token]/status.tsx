@@ -10,6 +10,7 @@ import { OFFICIAL_DUITNOW_QR } from "@/lib/brand";
 import BrandLogo from "@/components/brand-logo";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { customerDeliveryNote } from "@/lib/customer-delivery-note";
 import Image from "next/image";
 import {
   ArrowRight,
@@ -132,10 +133,6 @@ export default function OrderStatus({ token }: { token: string }) {
                   expires.
                 </p>
               )}
-              <p className="shop-order-private">
-                Save this private order link. Anyone with this link can view
-                your order; share it only with people you trust.
-              </p>
               <button className="shop-secondary" onClick={() => void load()}>
                 <RefreshCw size={16} />
                 Refresh status
@@ -427,9 +424,10 @@ export default function OrderStatus({ token }: { token: string }) {
                   ? order.store.pickup_address
                   : `${order.address} · ${order.postcode}`}
               </p>
-              {order.fulfillment === "delivery" && (
-                <p>{order.store.delivery_note}</p>
-              )}
+              {order.fulfillment === "delivery" &&
+                customerDeliveryNote(order.store.delivery_note) && (
+                  <p>{customerDeliveryNote(order.store.delivery_note)}</p>
+                )}
               {order.store.contact_phone && (
                 <p>Contact our team: {order.store.contact_phone}</p>
               )}

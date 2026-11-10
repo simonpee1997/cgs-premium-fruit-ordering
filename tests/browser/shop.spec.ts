@@ -24,7 +24,7 @@ const store = {
   pickup_address: "Test collection address, Kuala Lumpur",
   contact_phone: "0100000000",
   delivery_fee_sen: 500,
-  delivery_note: "Test delivery to configured postcode areas",
+  delivery_note: "Klang Valley Mon to Saturday. Next day delivery",
   delivery_postcode_prefixes: ["50"],
   bank_transfer_available: true,
   duitnow_available: false,
@@ -47,6 +47,11 @@ test("public collection is responsive, searches Chinese SKUs and links staff to 
     page.getByRole("heading", { name: "The collection", exact: true }),
   ).toBeVisible();
   await expect(page.locator(".shop-product")).toHaveCount(11);
+  await expect(page.getByLabel("Search collection")).toHaveAttribute(
+    "placeholder",
+    "Search products...",
+  );
+  await expect(page.getByText(/Klang Valley Mon to Saturday/i)).toHaveCount(0);
   await expect(
     page.getByRole("link", { name: "Staff sign in" }),
   ).toHaveAttribute("href", "/admin");
@@ -62,6 +67,8 @@ test("public collection is responsive, searches Chinese SKUs and links staff to 
   await page.getByLabel("Search collection").fill("原味");
   await expect(page.locator(".shop-product")).toHaveCount(1);
   await expect(page.locator(".shop-product")).toContainText("LF-02");
+  await page.getByLabel("Search collection").fill("LF-02");
+  await expect(page.locator(".shop-product")).toHaveCount(1);
 });
 test("customer can request delivery, see exact fees and submit a manual payment reference", async ({
   page,
@@ -120,6 +127,7 @@ test("customer can request delivery, see exact fees and submit a manual payment 
     .click();
   await page.getByRole("button", { name: "Open basket, 1 items" }).click();
   await page.getByRole("button", { name: "Continue to checkout" }).click();
+  await expect(page.getByText(/Klang Valley Mon to Saturday/i)).toHaveCount(0);
   await page.getByLabel("Full name").fill("Test customer");
   await page.getByLabel("Contact number").fill("0100000000");
   await page.getByRole("button", { name: "Delivery", exact: true }).click();
@@ -146,6 +154,14 @@ test("customer can request delivery, see exact fees and submit a manual payment 
   await expect(page.locator(".shop-customer-receipt")).toContainText(
     "Total / 总计",
   );
+  await expect(page.getByText(/Save this private order link/)).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Refresh status", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Payment instructions", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText(/Klang Valley Mon to Saturday/i)).toHaveCount(0);
   expect(submitted?.expected_total_sen).toBe(2438);
   expect(submitted?.fulfillment).toBe("delivery");
   expect(submitted).not.toHaveProperty("unit_price_sen");
