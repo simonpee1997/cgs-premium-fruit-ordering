@@ -64,3 +64,20 @@
     display: none !important;
   }
 }
+
+.receipt-account-number {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+  user-select: all;
+}
+.receipt-copy-account {
+  padding: 8px 12px;
+  min-height: 44px;
+  border: 1px solid #d5cabc;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}

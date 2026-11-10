@@ -1,3 +1,4 @@
+import { normalizeBankAccountNumber } from "./bank-details";
 import { z } from "zod";
 const text = z.string().trim().min(1).max(150),
   id = z.uuid();
@@ -113,7 +114,10 @@ export const onlineSettingsSchema = z
     delivery_note: z.string().max(1000),
     bank_name: z.string().max(150),
     bank_account_name: z.string().max(150),
-    bank_account_number: z.string().max(100),
+    bank_account_number: z
+      .string()
+      .max(100)
+      .transform(normalizeBankAccountNumber),
     duitnow_qr_url: z.union([
       z.literal(""),
       z

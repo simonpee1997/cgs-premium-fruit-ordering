@@ -3,9 +3,9 @@ import { readFile } from "node:fs/promises";
 const token = "60000000-0000-4000-8000-000000000001";
 const saleId = "70000000-0000-4000-8000-000000000001";
 const bank = {
-  bank_name: "Saved Test Bank",
-  bank_account_name: "CHIPSTI TEST ACCOUNT",
-  bank_account_number: "TEST-ACCOUNT-123",
+  bank_name: "MAYBANK",
+  bank_account_name: "512222906185",
+  bank_account_number: "512222906185",
 };
 const line = {
   sku: "LF-02",
@@ -58,6 +58,15 @@ test("customer downloads and shares the existing bilingual receipt with QR and s
 }) => {
   test.setTimeout(90000);
   await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      value: {
+        writeText: async (value: string) => {
+          (window as unknown as { copiedAccount: string }).copiedAccount =
+            value;
+        },
+      },
+      configurable: true,
+    });
     Object.defineProperty(navigator, "canShare", {
       value: () => true,
       configurable: true,
@@ -76,10 +85,20 @@ test("customer downloads and shares the existing bilingual receipt with QR and s
   await expect(receipt).toContainText("Payment receipt / 付款收据");
   await expect(receipt).toContainText("Original Golden Arrowhead");
   await expect(receipt).toContainText("原味黄金呀菇");
-  await expect(receipt).toContainText(bank.bank_account_number);
+  await expect(receipt).toContainText("5122 2290 6185");
   await expect(
     receipt.getByAltText("Official CHIPSTI ENTERPRISE DuitNow payment QR"),
   ).toHaveAttribute("src", "/branding/chipsti-duitnow.original.jpeg");
+  const displayed = page.locator(".receipt-bank-details").last();
+  await expect(displayed.locator('[data-bank-field="bank"]')).toHaveText(
+    "Maybank",
+  );
+  await expect(displayed.locator('[data-bank-field="name"]')).toHaveText(
+    "CHIPSTI ENTERPRISE",
+  );
+  await expect(displayed.locator('[data-bank-field="number"]')).toHaveText(
+    "5122 2290 6185",
+  );
   const pending = page.waitForEvent("download");
   await receipt
     .getByRole("button", { name: "Download PDF / 下载 PDF", exact: true })
@@ -87,6 +106,19 @@ test("customer downloads and shares the existing bilingual receipt with QR and s
   const download = await pending;
   await verifyDownload(download);
   await download.saveAs(`test-results/receipt-${test.info().project.name}.pdf`);
+  await displayed
+    .getByRole("button", {
+      name: "Copy account number / 复制银行账号",
+      exact: true,
+    })
+    .click();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => (window as unknown as { copiedAccount: string }).copiedAccount,
+      ),
+    )
+    .toBe("512222906185");
   await receipt
     .getByRole("button", { name: "Share PDF / 分享 PDF", exact: true })
     .click();
@@ -111,6 +143,16 @@ test("long receipts produce multiple PDF pages without exporting controls", asyn
     r.fulfill({ json: order(45) }),
   );
   await page.goto(`/order/${token}`);
+  const displayed = page.locator(".receipt-bank-details").last();
+  await expect(displayed.locator('[data-bank-field="bank"]')).toHaveText(
+    "Maybank",
+  );
+  await expect(displayed.locator('[data-bank-field="name"]')).toHaveText(
+    "CHIPSTI ENTERPRISE",
+  );
+  await expect(displayed.locator('[data-bank-field="number"]')).toHaveText(
+    "5122 2290 6185",
+  );
   const pending = page.waitForEvent("download");
   await page
     .getByRole("button", { name: "Download PDF / 下载 PDF", exact: true })
@@ -210,8 +252,16 @@ test("POS receipt downloads with authorized saved payment details", async ({
     .getByRole("button", { name: "Sales History", exact: true })
     .click();
   await page.getByRole("button", { name: "View receipt", exact: true }).click();
-  await expect(page.locator(".receipt")).toContainText(
-    bank.bank_account_number,
+  await expect(page.locator(".receipt")).toContainText("5122 2290 6185");
+  const displayed = page.locator(".receipt-bank-details").last();
+  await expect(displayed.locator('[data-bank-field="bank"]')).toHaveText(
+    "Maybank",
+  );
+  await expect(displayed.locator('[data-bank-field="name"]')).toHaveText(
+    "CHIPSTI ENTERPRISE",
+  );
+  await expect(displayed.locator('[data-bank-field="number"]')).toHaveText(
+    "5122 2290 6185",
   );
   const pending = page.waitForEvent("download");
   await page

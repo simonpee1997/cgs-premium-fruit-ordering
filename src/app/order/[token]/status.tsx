@@ -1,6 +1,9 @@
 "use client";
 import ReceiptPdfActions from "@/components/receipt-pdf-actions";
-import { ReceiptPaymentDetails } from "@/components/receipt-payment-details";
+import {
+  BankAccountDetails,
+  ReceiptPaymentDetails,
+} from "@/components/receipt-payment-details";
 import PaymentProofUpload from "@/components/payment-proof-upload";
 import type { UploadedProof } from "@/lib/payment-proof";
 import { OFFICIAL_DUITNOW_QR } from "@/lib/brand";
@@ -144,14 +147,7 @@ export default function OrderStatus({ token }: { token: string }) {
                 <div className="shop-payment-due">{money(order.total_sen)}</div>
                 {order.payment_method === "bank" ? (
                   <div className="shop-bank">
-                    <p>
-                      <strong>{order.store.bank_name}</strong>
-                    </p>
-                    <p>Account name: {order.store.bank_account_name}</p>
-                    <p>
-                      Account number:{" "}
-                      <strong>{order.store.bank_account_number}</strong>
-                    </p>
+                    <BankAccountDetails bank={order.store} />
                   </div>
                 ) : (
                   <>

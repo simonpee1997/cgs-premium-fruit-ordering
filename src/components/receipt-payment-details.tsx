@@ -2,18 +2,65 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { OFFICIAL_DUITNOW_QR } from "@/lib/brand";
+import {
+  type BankDetails,
+  receiptBankDetails,
+  formatBankAccountNumber,
+} from "@/lib/bank-details";
 import "./receipt-pdf.css";
-export type ReceiptBankDetails = {
-  bank_name: string;
-  bank_account_name: string;
-  bank_account_number: string;
-};
-export function ReceiptPaymentDetails({ bank }: { bank: ReceiptBankDetails }) {
-  const hasBank = !!(
-    bank.bank_name &&
-    bank.bank_account_name &&
-    bank.bank_account_number
+export type ReceiptBankDetails = BankDetails;
+export function BankAccountDetails({ bank }: { bank: ReceiptBankDetails }) {
+  const details = receiptBankDetails(bank);
+  const [message, setMessage] = useState("");
+  if (
+    !details.bank_name ||
+    !details.bank_account_name ||
+    !details.bank_account_number
+  )
+    return null;
+  return (
+    <div className="receipt-bank-details">
+      <p>
+        <strong data-bank-field="bank">{details.bank_name}</strong>
+      </p>
+      <p>
+        Account name / 户口名称
+        <br />
+        <strong data-bank-field="name">{details.bank_account_name}</strong>
+      </p>
+      <p>
+        Account number / 银行账号
+        <br />
+        <strong className="receipt-account-number" data-bank-field="number">
+          {formatBankAccountNumber(details.bank_account_number)}
+        </strong>
+      </p>
+      <button
+        type="button"
+        data-pdf-exclude
+        className="receipt-copy-account"
+        onClick={async () => {
+          try {
+            await navigator.clipboard.writeText(details.bank_account_number);
+            setMessage("Account number copied / 银行账号已复制");
+          } catch {
+            setMessage(
+              "Select and copy the account number above. / 请选择并复制上方银行账号。",
+            );
+          }
+        }}
+      >
+        Copy account number / 复制银行账号
+      </button>
+      {message && (
+        <p role="status" data-pdf-exclude>
+          {message}
+        </p>
+      )}
+    </div>
   );
+}
+export function ReceiptPaymentDetails({ bank }: { bank: ReceiptBankDetails }) {
   return (
     <section className="receipt-payment-details" data-pdf-block>
       <h3>Payment details / 付款资料</h3>
@@ -25,23 +72,7 @@ export function ReceiptPaymentDetails({ bank }: { bank: ReceiptBankDetails }) {
         unoptimized
         loading="eager"
       />
-      {hasBank && (
-        <div className="receipt-bank-details">
-          <p>
-            <strong>{bank.bank_name}</strong>
-          </p>
-          <p>
-            Account name / 户口名称
-            <br />
-            <strong>{bank.bank_account_name}</strong>
-          </p>
-          <p>
-            Account number / 银行账号
-            <br />
-            <strong>{bank.bank_account_number}</strong>
-          </p>
-        </div>
-      )}
+      <BankAccountDetails bank={bank} />
       <p className="receipt-payment-note">
         For reference only. Follow the payment status above; do not pay a
         completed receipt again.
