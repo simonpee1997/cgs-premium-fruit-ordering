@@ -30,6 +30,7 @@ export type ShopSettings = {
   delivery_note: string;
   delivery_postcode_prefixes: string[];
   delivery_areas?: DeliveryArea[];
+  free_delivery_all_postcodes?: boolean;
   bank_transfer_available: boolean;
   duitnow_available: boolean;
   tax_bps: number;

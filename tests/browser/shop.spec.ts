@@ -455,3 +455,69 @@ test("catalogue without promotion migrations supports checkout without promotion
   await expect(page.getByLabel("Full name")).toBeVisible();
   expect(promotionRequests).toEqual([]);
 });
+for (const price of [29999, 30000]) {
+  test(`nationwide delivery to Sarawak quotes ${price} sen product subtotal correctly`, async ({
+    page,
+  }) => {
+    await page.route("**/api/shop", (route) =>
+      route.fulfill({
+        json: {
+          store: {
+            ...store,
+            tax_bps: 0,
+            delivery_fee_sen: 3000,
+            delivery_areas: [],
+            delivery_postcode_prefixes: [],
+            free_delivery_all_postcodes: true,
+          },
+          products: products.map((p) => ({ ...p, price_sen: price })),
+        },
+      }),
+    );
+    await page.reload();
+    await expect(page.locator(".shop-delivery-banner")).toContainText(
+      "nationwide",
+    );
+    await page
+      .getByRole("button", { name: "Add LF-02 to basket", exact: true })
+      .click();
+    await page.getByRole("button", { name: "Open basket, 1 items" }).click();
+    await page.getByRole("button", { name: "Continue to checkout" }).click();
+    await page.getByLabel("Full name").fill("Test customer");
+    await page.getByLabel("Contact number").fill("0100000000");
+    await page.getByRole("button", { name: "Delivery", exact: true }).click();
+    await page
+      .getByLabel("Complete Malaysian delivery address")
+      .fill("Complete test address in Kuching, Sarawak");
+    await page.getByLabel("Postcode", { exact: true }).fill("93000");
+    await expect(page.locator(".shop-grand-total")).toContainText(
+      price === 30000 ? "300.00" : "329.99",
+    );
+    if (price === 30000)
+      await expect(
+        page.getByText("Congratulations! You've unlocked FREE DELIVERY!"),
+      ).toBeVisible();
+    let payload: Record<string, unknown> | undefined;
+    await page.route("**/api/shop/order", async (route) => {
+      payload = route.request().postDataJSON();
+      await route.fulfill({
+        status: 400,
+        json: { error: "Test-only stop before order creation" },
+      });
+    });
+    await page
+      .getByRole("checkbox", { name: /I agree to the order total/ })
+      .check();
+    await page
+      .getByRole("button", { name: "Place order", exact: true })
+      .click();
+    await expect(
+      page.getByText("Test-only stop before order creation"),
+    ).toBeVisible();
+    expect(payload?.postcode).toBe("93000");
+    expect(payload?.expected_total_sen).toBe(
+      price + (price >= 30000 ? 0 : 3000),
+    );
+    expect(payload).not.toHaveProperty("delivery_fee_sen");
+  });
+}

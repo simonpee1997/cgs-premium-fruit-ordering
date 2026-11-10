@@ -219,6 +219,7 @@ export default function Shop() {
     default_fee_sen: store?.delivery_fee_sen ?? 0,
     areas: store?.delivery_areas ?? [],
     postcode_prefixes: store?.delivery_postcode_prefixes ?? [],
+    free_all_postcodes: store?.free_delivery_all_postcodes === true,
   });
   const fee = quote.fee_sen,
     tax = Math.floor(
@@ -465,8 +466,9 @@ export default function Shop() {
           </label>
           <p className="shop-checkout-note">{store?.delivery_note}</p>
           <p className="shop-checkout-note">
-            Exact configured postcodes only. Other areas use the standard
-            delivery charge.
+            {store?.free_delivery_all_postcodes
+              ? "Delivery to all Malaysian postcodes. Free delivery on product orders of RM300 or more after discounts."
+              : "Exact configured postcodes only. Other areas use the standard delivery charge."}
           </p>
         </>
       )}
@@ -476,13 +478,15 @@ export default function Shop() {
     fulfillment === "pickup"
       ? "Pickup has no delivery fee."
       : !quote.confirmed
-        ? "Select your delivery area to check free delivery eligibility."
+        ? store?.free_delivery_all_postcodes
+          ? "Enter your delivery address and postcode. Orders of RM300 or more get free delivery nationwide."
+          : "Select your delivery area to check free delivery eligibility."
         : !quote.deliverable
           ? "This postcode is outside our delivery area."
           : !quote.eligible
             ? "Free delivery is available within Klang Valley only."
             : quote.remaining_sen > 0
-              ? `Add ${money(quote.remaining_sen)} more to unlock FREE DELIVERY within Klang Valley!`
+              ? `Add ${money(quote.remaining_sen)} more to unlock FREE DELIVERY${store?.free_delivery_all_postcodes ? " nationwide" : " within Klang Valley"}!`
               : "Congratulations! You've unlocked FREE DELIVERY!";
   const deliveryProgress = (
     <aside className={`shop-delivery-progress${quote.free ? " unlocked" : ""}`}>
@@ -1070,8 +1074,15 @@ export default function Shop() {
           <span>
             <strong>FREE DELIVERY</strong>
             <span className="shop-banner-divider"> | </span>Spend RM300 &amp;
-            above within Klang Valley
-            <small>After discounts · Eligible configured postcodes only</small>
+            above{" "}
+            {store?.free_delivery_all_postcodes
+              ? "nationwide"
+              : "within Klang Valley"}
+            <small>
+              {store?.free_delivery_all_postcodes
+                ? "After discounts · All Malaysian postcodes"
+                : "After discounts · Eligible configured postcodes only"}
+            </small>
           </span>
         </aside>
         <div className="shop-shopping-layout">

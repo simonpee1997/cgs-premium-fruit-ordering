@@ -13,6 +13,7 @@ export function deliveryQuote({
   default_fee_sen,
   areas = [],
   postcode_prefixes = [],
+  free_all_postcodes = false,
 }: {
   fulfillment: "pickup" | "delivery";
   postcode: string;
@@ -22,6 +23,7 @@ export function deliveryQuote({
   default_fee_sen: number;
   areas?: DeliveryArea[];
   postcode_prefixes?: string[];
+  free_all_postcodes?: boolean;
 }) {
   if (
     !Number.isSafeInteger(subtotal_sen) ||
@@ -40,7 +42,9 @@ export function deliveryQuote({
       postcode_prefixes.some((prefix) => code.startsWith(prefix)));
   const area = areas.find((area) => area.postcodes.includes(code));
   const eligible =
-    confirmed && deliverable && Boolean(area?.free_delivery_eligible);
+    confirmed &&
+    deliverable &&
+    (free_all_postcodes || Boolean(area?.free_delivery_eligible));
   const standard =
     fulfillment === "pickup" ? 0 : (area?.standard_fee_sen ?? default_fee_sen);
   const free =
