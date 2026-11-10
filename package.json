@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:browser": "playwright test",
     "format": "prettier --write .",
-    "deploy:check": "node scripts/deployment-check.mjs"
+    "deploy:check": "node scripts/deployment-check.mjs",
+    "postbuild": "node scripts/correct-chipsti-bank.mjs --deployment"
   },
   "dependencies": {
     "@supabase/ssr": "latest",

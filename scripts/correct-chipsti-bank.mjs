@@ -85,8 +85,13 @@ if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
-  const apply = process.argv.includes("--apply");
-  const sha = process.argv[process.argv.indexOf("--expected-sha") + 1];
+  const deployment = process.argv.includes("--deployment");
+  // Normal/local builds are a no-op. Only an explicitly approved deployment gets this flag.
+  if (deployment && !process.env.CHIPSTI_BANK_CORRECTION_SHA) process.exit(0);
+  const apply = deployment || process.argv.includes("--apply");
+  const sha = deployment
+    ? process.env.CHIPSTI_BANK_CORRECTION_SHA
+    : process.argv[process.argv.indexOf("--expected-sha") + 1];
   if (process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "") !== origin)
     throw new Error("Wrong Supabase project; no changes made");
   if (
