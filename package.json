@@ -16,6 +16,8 @@
   "dependencies": {
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
+    "html2canvas-pro": "^2.6.3",
+    "jspdf": "^4.2.1",
     "lucide-react": "latest",
     "next": "latest",
     "react": "latest",

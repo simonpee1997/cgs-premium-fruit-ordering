@@ -1,9 +1,11 @@
 "use client";
+import ReceiptPdfActions from "@/components/receipt-pdf-actions";
+import { ReceiptPaymentDetails } from "@/components/receipt-payment-details";
 import PaymentProofUpload from "@/components/payment-proof-upload";
 import type { UploadedProof } from "@/lib/payment-proof";
 import { OFFICIAL_DUITNOW_QR } from "@/lib/brand";
 import BrandLogo from "@/components/brand-logo";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -30,6 +32,7 @@ const labels: Record<string, string> = {
   expired: "Reservation expired",
 };
 export default function OrderStatus({ token }: { token: string }) {
+  const receiptRef = useRef<HTMLElement>(null);
   const [order, setOrder] = useState<PublicOrder | null>(null),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true),
@@ -271,7 +274,10 @@ export default function OrderStatus({ token }: { token: string }) {
                 )}
               </section>
             )}
-            <section className="shop-order-panel shop-customer-receipt">
+            <section
+              className="shop-order-panel shop-customer-receipt"
+              ref={receiptRef}
+            >
               <div className="shop-receipt-identity">
                 <BrandLogo className="receipt-logo" />
                 <h2>CHIPSTI ENTERPRISE</h2>
@@ -393,7 +399,14 @@ export default function OrderStatus({ token }: { token: string }) {
                   ? "Cashier-confirmed payment / 收银员已确认付款"
                   : "Payment verification pending / 付款待核实"}
               </p>
-              <div className="shop-receipt-actions">
+              <ReceiptPaymentDetails bank={order.store} />
+              <ReceiptPdfActions
+                key={JSON.stringify(order)}
+                getReceipt={() => receiptRef.current}
+                name={order.receipt_number || order.order_number}
+                layout="customer"
+              />
+              <div className="shop-receipt-actions" data-pdf-exclude>
                 <button
                   className="shop-secondary"
                   onClick={() => window.print()}

@@ -1,0 +1,66 @@
+.receipt-payment-details {
+  border-top: 1px dashed #d5cabc;
+  margin-top: 22px;
+  padding-top: 18px;
+  break-inside: avoid;
+  color: #302b24;
+}
+.receipt-payment-details h3 {
+  font-size: 13px;
+  margin: 0 0 12px;
+  text-align: center;
+}
+.receipt-payment-details > img {
+  display: block;
+  width: 240px;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto 14px;
+}
+.receipt-bank-details {
+  overflow-wrap: anywhere;
+  text-align: center;
+  font-size: 11px;
+}
+.receipt-bank-details p {
+  margin: 8px 0;
+  line-height: 1.6;
+}
+.receipt-payment-details .receipt-payment-note {
+  font-size: 10px;
+  line-height: 1.6;
+  color: #6e6254;
+  margin-top: 14px;
+}
+.receipt-pdf-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin: 16px 0;
+}
+.receipt-pdf-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  white-space: normal;
+}
+.receipt-pdf-actions p,
+.receipt-pdf-error {
+  flex-basis: 100%;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.receipt-pdf-actions button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+@media print {
+  .receipt-pdf-actions,
+  [data-pdf-exclude] {
+    display: none !important;
+  }
+}

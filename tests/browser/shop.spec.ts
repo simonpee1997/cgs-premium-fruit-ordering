@@ -152,7 +152,9 @@ test("customer can request delivery, see exact fees and submit a manual payment 
   await expect(
     page.getByText("Order summary · not a payment receipt"),
   ).toBeVisible();
-  await expect(page.getByText("Test Bank", { exact: true })).toBeVisible();
+  await expect(
+    page.locator(".shop-bank").getByText("Test Bank", { exact: true }),
+  ).toBeVisible();
   await page
     .getByLabel("Bank or DuitNow transaction reference")
     .fill("TEST-REF-123");

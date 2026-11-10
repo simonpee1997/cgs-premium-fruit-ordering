@@ -1,4 +1,6 @@
 "use client";
+import ReceiptPdfActions from "@/components/receipt-pdf-actions";
+import { SaleReceiptPaymentDetails } from "@/components/receipt-payment-details";
 import BrandLogo from "@/components/brand-logo";
 import OnlineOrders from "@/components/online-orders";
 import Image from "next/image";
@@ -384,6 +386,7 @@ export default function Retail({ configured }: { configured: boolean }) {
       value: p?.archived ?? false,
     },
   ];
+  const receiptRef = useRef<HTMLElement>(null);
   const selectedSale = sales.find((s) => s.id === receipt);
   function exportSales() {
     const rows = [
@@ -2661,7 +2664,7 @@ export default function Retail({ configured }: { configured: boolean }) {
                 <X />
               </button>
             </div>
-            <article className="receipt">
+            <article className="receipt" ref={receiptRef}>
               <BrandLogo className="receipt-logo" />
               <h2>CHIPSTI ENTERPRISE</h2>
               <p>SSM: 202603232290 (RA0139100-V)</p>
@@ -2735,11 +2738,21 @@ export default function Retail({ configured }: { configured: boolean }) {
                   </div>
                 ))}
               <hr />
+              <SaleReceiptPaymentDetails
+                key={selectedSale.id}
+                saleId={selectedSale.id}
+              />
               <p className="thank-you">
                 Thank you for shopping with us.
                 <br />A little more extraordinary.
               </p>
             </article>
+            <ReceiptPdfActions
+              key={selectedSale.id}
+              getReceipt={() => receiptRef.current}
+              name={selectedSale.receipt_number}
+              layout="pos"
+            />
             <a
               className="secondary share"
               target="_blank"
