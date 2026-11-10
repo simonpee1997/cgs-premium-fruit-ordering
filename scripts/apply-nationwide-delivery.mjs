@@ -2,6 +2,8 @@
 import { pathToFileURL } from "node:url";
 import { readFile } from "node:fs/promises";
 import pg from "pg";
+import { X509Certificate } from "node:crypto";
+import { rootCertificates } from "node:tls";
 if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(process.argv[1]).href
@@ -26,7 +28,24 @@ if (
     !target.hostname.endsWith(".pooler.supabase.com")
   )
     throw new Error("Unrecognized database host; no changes made");
-  target.searchParams.set("sslmode", "verify-full");
+  // Use the same root CA download configured by Supabase's official Studio:
+  // https://github.com/supabase/supabase/blob/master/apps/studio/hooks/custom-content/custom-content.json
+  const caResponse = await fetch(
+    "https://supabase-downloads.s3-ap-southeast-1.amazonaws.com/prod/ssl/prod-ca-2021.crt",
+    { signal: AbortSignal.timeout(20000) },
+  );
+  if (!caResponse.ok)
+    throw new Error("Official database CA download failed; no changes made");
+  const ca = await caResponse.text();
+  const certificate = new X509Certificate(ca);
+  if (!certificate.ca || Date.parse(certificate.validTo) <= Date.now())
+    throw new Error(
+      "Official database CA is invalid or expired; no changes made",
+    );
+  // URI ssl flags override pg's explicit TLS object, so remove them and require
+  // authenticated TLS with the official CA plus the normal trusted root set.
+  for (const name of ["ssl", "sslmode", "sslrootcert", "sslcert", "sslkey"])
+    target.searchParams.delete(name);
   if (
     ![target.hostname, decodeURIComponent(target.username)].some((v) =>
       v.includes("xmbusapgcxtmdjvnbdgs"),
@@ -37,6 +56,11 @@ if (
     );
   const client = new pg.Client({
     connectionString: target.toString(),
+    ssl: {
+      rejectUnauthorized: true,
+      ca: [...rootCertificates, ca],
+      servername: target.hostname,
+    },
     connectionTimeoutMillis: 20000,
     statement_timeout: 45000,
     query_timeout: 60000,
