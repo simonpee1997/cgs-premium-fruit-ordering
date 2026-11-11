@@ -7,7 +7,13 @@ export default function ReceiptPdfActions({
   getReceipt,
   name,
   layout,
-}: { getReceipt: () => HTMLElement | null } & ReceiptPdfOptions) {
+  whatsappUrl,
+  shareText,
+}: {
+  getReceipt: () => HTMLElement | null;
+  whatsappUrl?: string | null;
+  shareText?: string;
+} & ReceiptPdfOptions) {
   const [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
   // Sharing a pre-generated File preserves the user activation required on phones.
@@ -40,7 +46,10 @@ export default function ReceiptPdfActions({
   async function share() {
     if (!file) return;
     try {
-      await navigator.share({ files: [file], title: `CHIPSTI ${name}` });
+      const data: ShareData = { files: [file], title: `CHIPSTI ${name}` };
+      if (shareText && navigator.canShare?.({ ...data, text: shareText }))
+        data.text = shareText;
+      await navigator.share(data);
     } catch (e) {
       if (!(e instanceof DOMException && e.name === "AbortError"))
         setMessage(
@@ -71,6 +80,24 @@ export default function ReceiptPdfActions({
             Share PDF / 分享 PDF
           </button>
         )}
+      {whatsappUrl && (
+        <>
+          <a
+            className="secondary shop-secondary"
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Open store WhatsApp / 打开商家 WhatsApp
+          </a>
+          <p>
+            To send the PDF, download it and attach it in the store chat, or tap
+            Share PDF and choose WhatsApp and the store contact. /
+            下载后在商家聊天中附加 PDF，或点击分享 PDF 并选择 WhatsApp
+            和商家联系人。
+          </p>
+        </>
+      )}
       {message && <p role="status">{message}</p>}
     </div>
   );

@@ -2063,3 +2063,23 @@
   min-height: 44px;
   height: 44px;
 }
+
+.shop-order-whatsapp {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 18px auto 0;
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.shop-order-whatsapp svg {
+  flex-shrink: 0;
+}
+@media print {
+  .shop-order-whatsapp {
+    display: none !important;
+  }
+}

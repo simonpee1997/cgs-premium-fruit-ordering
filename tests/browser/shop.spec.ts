@@ -162,6 +162,23 @@ test("customer can request delivery, see exact fees and submit a manual payment 
     page.getByRole("heading", { name: "Payment instructions", exact: true }),
   ).toBeVisible();
   await expect(page.getByText(/Klang Valley Mon to Saturday/i)).toHaveCount(0);
+  const whatsappHref = await page
+    .getByRole("link", {
+      name: "Send order to WhatsApp / WhatsApp 发送订单",
+      exact: true,
+    })
+    .getAttribute("href");
+  const whatsapp = new URL(whatsappHref!);
+  expect(whatsapp.origin).toBe("https://wa.me");
+  expect(whatsapp.pathname).toBe("/60100000000");
+  expect(whatsapp.searchParams.get("text")).toContain("WEB-TEST-000001");
+  expect(whatsapp.searchParams.get("text")).toContain(
+    "Original Golden Arrowhead",
+  );
+  expect(whatsapp.searchParams.get("text")).toContain("24.38");
+  expect(whatsapp.searchParams.get("text")).toContain(
+    "https://chipsti.com/order/" + token,
+  );
   expect(submitted?.expected_total_sen).toBe(2438);
   expect(submitted?.fulfillment).toBe("delivery");
   expect(submitted).not.toHaveProperty("unit_price_sen");

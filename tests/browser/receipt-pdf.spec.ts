@@ -39,7 +39,7 @@ function order(count = 1) {
     store: {
       ...bank,
       pickup_address: "Test address",
-      contact_phone: "",
+      contact_phone: "0147371434",
       delivery_note: "",
     },
   };
@@ -73,6 +73,7 @@ test("customer downloads and shares the existing bilingual receipt with QR and s
     });
     Object.defineProperty(navigator, "share", {
       value: async (data: ShareData) => {
+        (window as unknown as { sharedText?: string }).sharedText = data.text;
         (window as unknown as { sharedFile: string }).sharedFile =
           data.files?.[0]?.name || "";
       },
@@ -129,6 +130,19 @@ test("customer downloads and shares the existing bilingual receipt with QR and s
       ),
     )
     .toBe("CHIPSTI-R-PDF-TEST.pdf");
+  const sharedText = await page.evaluate(
+    () => (window as unknown as { sharedText?: string }).sharedText,
+  );
+  expect(sharedText).toContain("WEB-PDF-TEST");
+  expect(sharedText).toContain("Original Golden Arrowhead");
+  expect(sharedText).not.toContain("https://chipsti.com/order/");
+  await expect(
+    receipt.getByRole("link", {
+      name: "Open store WhatsApp / 打开商家 WhatsApp",
+      exact: true,
+    }),
+  ).toHaveAttribute("href", /^https:\/\/wa.me\/60147371434\?text=/);
+
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,

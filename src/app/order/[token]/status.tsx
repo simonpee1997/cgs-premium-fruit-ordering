@@ -10,6 +10,7 @@ import { OFFICIAL_DUITNOW_QR } from "@/lib/brand";
 import BrandLogo from "@/components/brand-logo";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { orderWhatsApp } from "@/lib/order-whatsapp";
 import { customerDeliveryNote } from "@/lib/customer-delivery-note";
 import Image from "next/image";
 import {
@@ -18,6 +19,7 @@ import {
   Clock,
   Printer,
   RefreshCw,
+  MessageCircle,
   ShoppingBag,
 } from "lucide-react";
 import { money, localDate } from "@/lib/money";
@@ -74,6 +76,7 @@ export default function OrderStatus({ token }: { token: string }) {
       ["paid", "ready", "dispatched", "completed", "refunded"].includes(
         order.status,
       );
+  const whatsapp = order ? orderWhatsApp(order, token) : null;
   return (
     <div className="shop shop-order-page">
       <header className="shop-header">
@@ -137,6 +140,17 @@ export default function OrderStatus({ token }: { token: string }) {
                 <RefreshCw size={16} />
                 Refresh status
               </button>
+              {whatsapp?.url && (
+                <a
+                  className="shop-primary shop-order-whatsapp"
+                  href={whatsapp.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <MessageCircle size={18} />
+                  <span>Send order to WhatsApp / WhatsApp 发送订单</span>
+                </a>
+              )}
             </section>
             {pending && order.payment_method !== "cash" && (
               <section className="shop-order-panel">
@@ -398,6 +412,8 @@ export default function OrderStatus({ token }: { token: string }) {
                 getReceipt={() => receiptRef.current}
                 name={order.receipt_number || order.order_number}
                 layout="customer"
+                whatsappUrl={whatsapp?.url}
+                shareText={whatsapp?.summary}
               />
               <div className="shop-receipt-actions" data-pdf-exclude>
                 <button

@@ -19,3 +19,9 @@ CHIPSTI's approved Maybank account is stored as `512222906185`, with holder `CHI
 `scripts/correct-chipsti-bank.mjs` is a one-time, explicitly invoked configuration utility, skipped during normal builds. Its apply mode requires the exact approved production Git commit and the CHIPSTI Supabase origin. It verifies one settings branch, the business name and SSM, updates only the three bank fields with an optimistic concurrency check, and rereads them for verification. It never changes QR configuration, orders, payments, or schema. Protected production credentials stay inside the deployment environment and are never printed or retrieved by the application client.
 
 The npm postbuild hook exits immediately unless `CHIPSTI_BANK_CORRECTION_SHA` is supplied to that deployment. Apply mode requires it to equal `VERCEL_GIT_COMMIT_SHA`; the flag is never saved as a project environment variable.
+
+## Customer WhatsApp handoff
+
+After a saved order loads, **Send order to WhatsApp / WhatsApp 发送订单** opens `wa.me` for the saved merchant contact number. The prefilled message contains the saved order number, bilingual items/quantities, subtotal, shipping, tax, total, fulfillment details and actual order status. The explicit store-chat action includes that order's private tracking link so the merchant can open it. No order or payment state changes when opening WhatsApp, and the customer must press Send in WhatsApp.
+
+The receipt also offers **Open store WhatsApp** beside PDF controls. Customers can attach their downloaded PDF in that chat. On devices supporting file sharing, **Share PDF** opens the system share menu; customers select WhatsApp and the store recipient. Supported devices also receive the order summary text, without its private tracking link. A wa.me link cannot pre-attach a PDF or force a recipient in the OS file-share menu. No WhatsApp Business API credentials or automated messages are introduced.

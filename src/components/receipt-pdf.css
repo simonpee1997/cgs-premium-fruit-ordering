@@ -81,3 +81,14 @@
   font-size: 11px;
   cursor: pointer;
 }
+
+.receipt-pdf-actions > a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 14px;
+  white-space: normal;
+  text-align: center;
+  text-decoration: none;
+}
