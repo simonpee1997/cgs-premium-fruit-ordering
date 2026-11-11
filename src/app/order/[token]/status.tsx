@@ -77,6 +77,17 @@ export default function OrderStatus({ token }: { token: string }) {
         order.status,
       );
   const whatsapp = order ? orderWhatsApp(order, token) : null;
+  useEffect(() => {
+    if (!order || window.location.hash !== "#whatsapp") return;
+    // Consume the checkout-only handoff before leaving, so Back/refresh/polling
+    // opens the saved receipt normally rather than starting a redirect loop.
+    window.history.replaceState(
+      window.history.state,
+      "",
+      window.location.pathname + window.location.search,
+    );
+    if (whatsapp?.url) window.location.assign(whatsapp.url);
+  }, [order, whatsapp?.url]);
   return (
     <div className="shop shop-order-page">
       <header className="shop-header">

@@ -74,6 +74,14 @@ test("customer can request delivery, see exact fees and submit a manual payment 
   page,
 }) => {
   const token = "60000000-0000-0000-0000-000000000001";
+  let handoffs = 0;
+  await page.route("https://wa.me/**", (route) => {
+    handoffs++;
+    return route.fulfill({
+      contentType: "text/html",
+      body: "<h1>WhatsApp test handoff</h1>",
+    });
+  });
   let submitted: Record<string, unknown> | undefined;
   let state = {
     order_number: "WEB-TEST-000001",
@@ -141,7 +149,14 @@ test("customer can request delivery, see exact fees and submit a manual payment 
     .getByRole("checkbox", { name: /I agree to the order total/ })
     .check();
   await page.getByRole("button", { name: "Place order", exact: true }).click();
+  await expect(page).toHaveURL(/^https:\/\/wa.me\/60100000000\?text=/);
+  const automaticMessage = new URL(page.url()).searchParams.get("text")!;
+  expect(automaticMessage).toContain("WEB-TEST-000001");
+  expect(automaticMessage).toContain("24.38");
+  await page.goBack();
   await expect(page).toHaveURL(new RegExp(`/order/${token}`));
+  expect(new URL(page.url()).hash).toBe("");
+  expect(handoffs).toBe(1);
   await expect(
     page.getByRole("heading", { name: "Order received", exact: true }),
   ).toBeVisible();

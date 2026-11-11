@@ -790,7 +790,7 @@ export default function Shop() {
                     });
                     const result = await response.json();
                     if (!response.ok) throw new Error(result.error);
-                    router.push(`/order/${result.token}`);
+                    router.push(`/order/${result.token}#whatsapp`);
                   } catch (e) {
                     setError(
                       e instanceof Error

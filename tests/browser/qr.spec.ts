@@ -188,7 +188,22 @@ test("QR order requires a private receipt and is shown as Pending Verification, 
       },
     }),
   );
+  let handoffs = 0;
+  await page.route("https://wa.me/**", (route) => {
+    handoffs++;
+    return route.fulfill({
+      contentType: "text/html",
+      body: "<h1>WhatsApp test handoff</h1>",
+    });
+  });
   await page.getByRole("button", { name: "Place order", exact: true }).click();
+  await expect(page).toHaveURL(/^https:\/\/wa.me\/60100000000\?text=/);
+  const message = new URL(page.url()).searchParams.get("text")!;
+  expect(message).toContain("WEB-TEST-QR");
+  expect(message).toContain("Payment pending verification");
+  await page.goBack();
+  expect(new URL(page.url()).hash).toBe("");
+  expect(handoffs).toBe(1);
   await expect(
     page.getByRole("heading", { name: "Pending Verification", exact: true }),
   ).toBeVisible();
