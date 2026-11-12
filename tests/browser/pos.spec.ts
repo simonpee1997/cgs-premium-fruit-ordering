@@ -8,6 +8,7 @@ const products = [
   id: `40000000-0000-0000-0000-${String(i + 1).padStart(12, "0")}`,
   sku: m[1],
   name: m[2],
+  english_name: m[1] === "LF-02" ? "Original Golden Arrowhead" : null,
   price_sen: Number(m[4]),
   low_stock: 5,
   category_id: "snacks",
@@ -71,11 +72,36 @@ test("Chinese product search, quantities, MYR discount and payment interface", a
   await search.fill("LF-02");
   await search.press("Enter");
   await expect(page.locator(".cart-line")).toHaveCount(1);
+  await expect(page.locator(".cart-line h3")).toContainText("原味黄金呀菇");
+  await expect(page.locator(".cart-line .product-english-name")).toHaveText(
+    "Original Golden Arrowhead",
+  );
   await expect(page.locator(".total-row").first()).toContainText("18.00");
   await page.getByRole("button", { name: "Increase LF-02" }).click();
   await expect(page.locator(".total-row").first()).toContainText("36.00");
   await page.getByLabel("Order discount", { exact: true }).fill("1.50");
   await expect(page.locator(".total-row").first()).toContainText("34.50");
+  await search.fill("LF-05");
+  await search.press("Enter");
+  const withoutEnglish = page
+    .locator(".cart-line")
+    .filter({ hasText: "LF-05" });
+  await expect(withoutEnglish.locator("h3")).toHaveText("咸蛋呀菇");
+  await expect(withoutEnglish.locator(".product-english-name")).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Decrease LF-05", exact: true })
+    .click();
+  await expect(page.locator(".cart-line")).toHaveCount(1);
+  await expect(page.locator(".total-row").first()).toContainText("34.50");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: `test-results/pos-current-order-${test.info().project.name}.png`,
+    fullPage: true,
+  });
   await page.getByRole("button", { name: /Charge/ }).click();
   await expect(
     page.getByRole("heading", { name: "Complete payment" }),

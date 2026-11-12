@@ -849,7 +849,18 @@ export default function Retail({ configured }: { configured: boolean }) {
                         <div className="cart-line" key={p.id}>
                           <div className="cart-line-top">
                             <div>
-                              <h3>{p.name}</h3>
+                              <h3>
+                                {p.name}
+                                {p.english_name?.trim() &&
+                                  p.english_name.trim() !== p.name.trim() && (
+                                    <span
+                                      className="product-english-name"
+                                      lang="en"
+                                    >
+                                      {p.english_name.trim()}
+                                    </span>
+                                  )}
+                              </h3>
                               <small>
                                 {p.sku} · {money(p.price_sen)}
                               </small>
