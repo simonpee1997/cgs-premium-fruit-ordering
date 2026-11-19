@@ -73,7 +73,7 @@ test("Chinese product search, quantities, MYR discount and payment interface", a
   await search.press("Enter");
   await expect(page.locator(".cart-line")).toHaveCount(1);
   await expect(page.locator(".cart-line h3")).toContainText("原味黄金呀菇");
-  await expect(page.locator(".cart-line .product-english-name")).toHaveText(
+  await expect(page.locator('.cart-line [lang="en"]')).toHaveText(
     "Original Golden Arrowhead",
   );
   await expect(page.locator(".total-row").first()).toContainText("18.00");
@@ -333,4 +333,53 @@ test("admin confirms funds explicitly before recording a customer order as paid"
   expect(submitted?.operation).toBe("confirm_payment");
   expect(submitted?.verified).toBe(true);
   expect(submitted?.tendered_sen).toBe(2300);
+});
+
+test("POS checks one code on the server and passes it without trusting client discount amounts", async ({
+  page,
+}) => {
+  await page.route("**/api/pos/promotion", (r) => {
+    const p = r.request().postDataJSON();
+    return r.fulfill({
+      json: { code: p.code, discount_sen: p.items[0].quantity * 360 },
+    });
+  });
+  const search = page.getByPlaceholder("Search products, SKU or scan barcode…");
+  await search.fill("LF-02");
+  await search.press("Enter");
+  await page
+    .getByLabel("Promo code / 优惠码", { exact: true })
+    .fill("cgsvip20");
+  await page.getByRole("button", { name: "Apply", exact: true }).click();
+  await expect(page.locator(".pos-code")).toContainText("CGSVIP20: −RM 3.60");
+  await expect(page.locator(".total-row").first()).toContainText("14.40");
+  await page.getByRole("button", { name: "Increase LF-02" }).click();
+  await expect(page.locator(".total-row").first()).toContainText("28.80");
+  await page.getByLabel("Order discount", { exact: true }).fill("1.50");
+  await expect(page.locator(".pos-code")).toContainText(
+    "Remove other promotions",
+  );
+  await expect(page.getByRole("button", { name: /Charge RM/ })).toBeDisabled();
+  await page.getByLabel("Order discount", { exact: true }).fill("0");
+  await expect(page.locator(".total-row").first()).toContainText("28.80");
+  let submitted: Record<string, unknown> | undefined;
+  await page.route("**/api/action", (r) => {
+    submitted = r.request().postDataJSON().payload;
+    return r.fulfill({
+      status: 400,
+      json: { error: "Fixture only: no sale submitted" },
+    });
+  });
+  await page.getByRole("button", { name: /Charge RM/ }).click();
+  await page
+    .getByRole("button", { name: "Confirm payment", exact: true })
+    .click();
+  await expect(
+    page.getByText("Fixture only: no sale submitted").first(),
+  ).toBeVisible();
+  expect(submitted?.promo_code).toBe("CGSVIP20");
+  expect(submitted?.discount_value).toBe(0);
+  expect(submitted?.payments).toEqual([
+    { method: "cash", amount_sen: 2880, tendered_sen: 2880, reference: "" },
+  ]);
 });

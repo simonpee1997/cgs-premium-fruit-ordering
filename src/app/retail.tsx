@@ -1,4 +1,9 @@
 "use client";
+import PosPromotionCode, {
+  type PosPromotionQuote,
+} from "@/components/pos-promotion-code";
+import Promotions from "@/components/promotions";
+import { receiptEnglishName } from "@/lib/receipt-item-name";
 import ReceiptPdfActions from "@/components/receipt-pdf-actions";
 import { SaleReceiptPaymentDetails } from "@/components/receipt-payment-details";
 import BrandLogo from "@/components/brand-logo";
@@ -97,6 +102,8 @@ export default function Retail({ configured }: { configured: boolean }) {
     [discountKind, setDiscountKind] = useState<"fixed" | "percent">("fixed"),
     [discountValue, setDiscountValue] = useState(0),
     [promotion, setPromotion] = useState(""),
+    [posCode, setPosCode] = useState(""),
+    [posQuote, setPosQuote] = useState<PosPromotionQuote | null>(null),
     [paymentOpen, setPaymentOpen] = useState(false),
     [paymentMethod, setPaymentMethod] = useState("cash"),
     [tendered, setTendered] = useState(""),
@@ -209,6 +216,7 @@ export default function Retail({ configured }: { configured: boolean }) {
   }
   const activePromos = (t.promotions ?? []).filter(
     (p) =>
+      !p.code &&
       p.active &&
       new Date(p.starts_at) <= new Date() &&
       new Date(p.ends_at) >= new Date(),
@@ -218,6 +226,21 @@ export default function Retail({ configured }: { configured: boolean }) {
   orderDiscount += Math.floor(
     ((subtotal - itemDiscount) * promoBps + 5000) / 10000,
   );
+  const posContext = JSON.stringify({
+    cart,
+    customer,
+    discountKind,
+    discountValue,
+    promotion,
+    prices: products.map((p) => [p.id, p.price_sen]),
+  });
+  const posReady =
+    !posCode ||
+    (posQuote?.code === posCode &&
+      posQuote.context === posContext &&
+      !posQuote.error);
+  const posDiscount = posCode && posReady ? (posQuote?.discount_sen ?? 0) : 0;
+  orderDiscount += posDiscount;
   const tax = Math.floor(
       ((subtotal - itemDiscount - orderDiscount) *
         (t.system_settings?.[0]?.tax_bps ?? 0) +
@@ -850,14 +873,18 @@ export default function Retail({ configured }: { configured: boolean }) {
                           <div className="cart-line-top">
                             <div>
                               <h3>
-                                {p.name}
+                                {p.english_name?.trim() ? (
+                                  <span lang="en">{p.english_name.trim()}</span>
+                                ) : (
+                                  p.name
+                                )}
                                 {p.english_name?.trim() &&
                                   p.english_name.trim() !== p.name.trim() && (
                                     <span
                                       className="product-english-name"
-                                      lang="en"
+                                      lang="zh"
                                     >
-                                      {p.english_name.trim()}
+                                      {p.name}
                                     </span>
                                   )}
                               </h3>
@@ -960,6 +987,23 @@ export default function Retail({ configured }: { configured: boolean }) {
                       ))}
                     </select>
                   )}
+                  <PosPromotionCode
+                    code={posCode}
+                    context={posContext}
+                    items={cart.map((l) => ({
+                      product_id: l.product_id,
+                      quantity: l.quantity,
+                    }))}
+                    blocked={
+                      !!promotion || discountValue > 0 || itemDiscount > 0
+                    }
+                    quote={posQuote}
+                    onQuote={setPosQuote}
+                    onCode={(code) => {
+                      setPosCode(code);
+                      checkoutKey.current = "";
+                    }}
+                  />
                   <div className="summary-row">
                     <span>Subtotal</span>
                     <span>{money(subtotal)}</span>
@@ -968,6 +1012,12 @@ export default function Retail({ configured }: { configured: boolean }) {
                     <span>Discounts</span>
                     <span>− {money(itemDiscount + orderDiscount)}</span>
                   </div>
+                  {posCode && posReady && (
+                    <div className="summary-row">
+                      <span>Promo · {posCode}</span>
+                      <span>−{money(posDiscount)}</span>
+                    </div>
+                  )}
                   <div className="summary-row">
                     <span>Tax</span>
                     <span>{money(tax)}</span>
@@ -978,7 +1028,9 @@ export default function Retail({ configured }: { configured: boolean }) {
                   </div>
                   <button
                     className="primary checkout"
-                    disabled={!cart.length || !session || busy || total < 0}
+                    disabled={
+                      !cart.length || !session || busy || total < 0 || !posReady
+                    }
                     onClick={() => {
                       setPaymentOpen(true);
                       setTendered(String(total));
@@ -2164,6 +2216,7 @@ export default function Retail({ configured }: { configured: boolean }) {
                       Edit tax & discount limits
                     </button>
                   </section>
+                  <Promotions data={data!} />
                   <section className="panel">
                     <h2>Collection settings</h2>
                     <div className="toolbar">
@@ -2216,27 +2269,29 @@ export default function Retail({ configured }: { configured: boolean }) {
                     </div>
                   </section>
                   <section className="panel">
-                    <h2>Promotions</h2>
-                    {(t.promotions ?? []).map((p) => (
-                      <div className="summary-row" key={p.id}>
-                        <span>
-                          {p.name} · {p.percent_bps / 100}% ·{" "}
-                          {p.active ? "Enabled" : "Disabled"}
-                        </span>
-                        <button
-                          className="text-button"
-                          disabled={busy}
-                          onClick={() =>
-                            void act("promotion_toggle", {
-                              id: p.id,
-                              active: !p.active,
-                            }).catch(() => {})
-                          }
-                        >
-                          {p.active ? "Disable" : "Enable"}
-                        </button>
-                      </div>
-                    ))}
+                    <h2>Legacy POS promotions</h2>
+                    {(t.promotions ?? [])
+                      .filter((p) => !p.code)
+                      .map((p) => (
+                        <div className="summary-row" key={p.id}>
+                          <span>
+                            {p.name} · {p.percent_bps / 100}% ·{" "}
+                            {p.active ? "Enabled" : "Disabled"}
+                          </span>
+                          <button
+                            className="text-button"
+                            disabled={busy}
+                            onClick={() =>
+                              void act("promotion_toggle", {
+                                id: p.id,
+                                active: !p.active,
+                              }).catch(() => {})
+                            }
+                          >
+                            {p.active ? "Disable" : "Enable"}
+                          </button>
+                        </div>
+                      ))}
                   </section>
                   <h2>Audit trail</h2>
                   <Table
@@ -2589,8 +2644,9 @@ export default function Retail({ configured }: { configured: boolean }) {
             )}
             <button
               className="primary"
-              disabled={busy}
+              disabled={busy || !posReady}
               onClick={async () => {
+                if (!posReady) return;
                 const remaining =
                   total - extraPayments.reduce((s, p) => s + p.amount_sen, 0);
                 if (
@@ -2612,6 +2668,7 @@ export default function Retail({ configured }: { configured: boolean }) {
                     discount_kind: discountKind,
                     discount_value: discountValue,
                     promotion_id: promotion || undefined,
+                    ...(posCode ? { promo_code: posCode } : {}),
                     payments:
                       total === 0
                         ? []
@@ -2626,6 +2683,8 @@ export default function Retail({ configured }: { configured: boolean }) {
                           ],
                   });
                   setReceipt(id);
+                  setPosCode("");
+                  setPosQuote(null);
                   setCart([]);
                   setDiscountValue(0);
                   setPromotion("");
@@ -2701,7 +2760,13 @@ export default function Retail({ configured }: { configured: boolean }) {
                 .filter((i) => i.sale_id === selectedSale.id)
                 .map((i) => (
                   <div key={i.id}>
-                    <strong>{i.name}</strong>
+                    <strong className="receipt-item-name">
+                      {receiptEnglishName(i, products) || i.name}
+                      {receiptEnglishName(i, products) &&
+                        receiptEnglishName(i, products) !== i.name && (
+                          <span lang="zh">{i.name}</span>
+                        )}
+                    </strong>
                     <div className="summary-row">
                       <span>
                         {i.sku} · {i.quantity} × {money(i.unit_price_sen)}
@@ -2718,6 +2783,14 @@ export default function Retail({ configured }: { configured: boolean }) {
                 <span>Subtotal</span>
                 <span>{money(selectedSale.subtotal_sen)}</span>
               </div>
+              {selectedSale.promo_code && (
+                <div className="summary-row">
+                  <span>Promo / 优惠码 · {selectedSale.promo_code}</span>
+                  <span>
+                    −{money(selectedSale.promotion_discount_sen ?? 0)}
+                  </span>
+                </div>
+              )}
               <div className="summary-row">
                 <span>Total discounts</span>
                 <span>−{money(selectedSale.discount_sen)}</span>
@@ -2773,11 +2846,11 @@ export default function Retail({ configured }: { configured: boolean }) {
                   .filter((i) => i.sale_id === selectedSale.id)
                   .map(
                     (i) =>
-                      `${i.sku} ${i.name} ×${i.quantity} ${money(i.total_sen)}`,
+                      `${i.sku} ${receiptEnglishName(i, products) ? receiptEnglishName(i, products) + " / " : ""}${i.name} ×${i.quantity} ${money(i.total_sen)}`,
                   )
                   .join(
                     "\n",
-                  )}\nDiscounts: ${money(selectedSale.discount_sen)}\nTax: ${money(selectedSale.tax_sen)}\nTotal: ${money(selectedSale.total_sen)}\nThank you!`,
+                  )}\nSubtotal: ${money(selectedSale.subtotal_sen)}${selectedSale.promo_code ? `\nPromo: ${selectedSale.promo_code} −${money(selectedSale.promotion_discount_sen ?? 0)}` : ""}\nDiscounts: ${money(selectedSale.discount_sen)}\nTax: ${money(selectedSale.tax_sen)}\nTotal: ${money(selectedSale.total_sen)}\nThank you!`,
               )}`}
             >
               Share receipt on WhatsApp

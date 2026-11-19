@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { promotionCodeSchema } from "./promotion-validation";
 const id = z.string().uuid(),
   sen = z.number().int().min(0).max(100_000_000),
   text = z.string().trim().min(1).max(500),
@@ -19,6 +20,7 @@ export const checkoutSchema = z.object({
   discount_kind: z.enum(["fixed", "percent"]),
   discount_value: sen,
   promotion_id: id.optional(),
+  promo_code: promotionCodeSchema.optional(),
   payments: z
     .array(
       z.object({

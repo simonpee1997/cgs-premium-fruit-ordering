@@ -221,20 +221,28 @@ test("POS receipt downloads with authorized saved payment details", async ({
       created_at: "2026-11-10T01:00:00Z",
       cashier_name: "Test cashier",
       subtotal_sen: 1800,
-      discount_sen: 0,
+      discount_sen: 360,
+      promotion_discount_sen: 360,
+      promo_code: "CGSVIP20",
       tax_sen: 0,
-      total_sen: 1800,
+      total_sen: 1440,
     },
   ];
   tables.sale_items = [
-    { ...line, id: "item", sale_id: saleId, discount_sen: 0 },
+    {
+      ...line,
+      english_name: "Original Golden Arrowhead",
+      id: "item",
+      sale_id: saleId,
+      discount_sen: 0,
+    },
   ];
   tables.payments = [
     {
       id: "payment",
       sale_id: saleId,
       method: "cash",
-      amount_sen: 1800,
+      amount_sen: 1440,
       tendered_sen: 2000,
       reference: "",
     },
@@ -277,6 +285,31 @@ test("POS receipt downloads with authorized saved payment details", async ({
   await expect(displayed.locator('[data-bank-field="number"]')).toHaveText(
     "5122 2290 6185",
   );
+  await expect(page.locator(".receipt")).toContainText("CGSVIP20");
+  await expect(page.locator(".receipt .total-row")).toContainText("14.40");
+  const names = page.locator(".receipt-item-name");
+  await expect(names).toContainText("Original Golden Arrowhead");
+  await expect(names.locator('[lang="zh"]')).toHaveText("原味黄金呀菇");
+  for (const width of ["58mm", "80mm"]) {
+    await page.getByLabel("Receipt paper size").selectOption(width);
+    expect(
+      await page
+        .locator(".receipt")
+        .evaluate((el) => el.scrollWidth <= el.clientWidth),
+    ).toBe(true);
+    const event = page.waitForEvent("download");
+    await page
+      .getByRole("button", { name: "Download PDF / 下载 PDF", exact: true })
+      .click();
+    const pdf = await event;
+    await verifyDownload(pdf);
+    await pdf.saveAs(
+      `test-results/receipt-bilingual-${width}-${test.info().project.name}.pdf`,
+    );
+    await page.locator(".receipt").screenshot({
+      path: `test-results/receipt-bilingual-${width}-${test.info().project.name}.png`,
+    });
+  }
   const pending = page.waitForEvent("download");
   await page
     .getByRole("button", { name: "Download PDF / 下载 PDF", exact: true })

@@ -12,7 +12,7 @@
     "test:browser": "playwright test",
     "format": "prettier --write .",
     "deploy:check": "node scripts/deployment-check.mjs",
-    "postbuild": "node scripts/correct-chipsti-bank.mjs --deployment && node scripts/apply-nationwide-delivery.mjs && node scripts/inspect-promotion-schema.mjs"
+    "postbuild": "node scripts/correct-chipsti-bank.mjs --deployment && node scripts/apply-nationwide-delivery.mjs && node scripts/inspect-promotion-schema.mjs && node scripts/apply-promotion-release.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "latest",

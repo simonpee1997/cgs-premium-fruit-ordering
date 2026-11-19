@@ -23,7 +23,6 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { money, localDate } from "@/lib/money";
-import { orderItemEnglishName } from "@/lib/order-item-name";
 import type { PublicOrder } from "@/lib/shop-types";
 import "../../shop.css";
 const labels: Record<string, string> = {
@@ -317,7 +316,7 @@ export default function OrderStatus({ token }: { token: string }) {
               </div>
               <hr />
               {order.items.map((i) => {
-                const englishName = orderItemEnglishName(i);
+                const englishName = i.english_name?.trim();
                 return (
                   <div className="shop-receipt-line" key={i.sku}>
                     <div>
