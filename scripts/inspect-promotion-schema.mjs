@@ -84,12 +84,10 @@ if (
       )
     ).rows;
     await client.query("rollback");
-    console.log(
-      "CHIPSTI_SCHEMA_INSPECT " +
-        Buffer.from(JSON.stringify({ functions, columns, guards })).toString(
-          "base64",
-        ),
-    );
+    const encoded = Buffer.from(JSON.stringify({functions,columns,guards})).toString('base64');
+    for(let start=0;start<encoded.length;start+=2000) console.log(`CHIPSTI_SCHEMA_PART ${start/2000} ${encoded.slice(start,start+2000)}`);
+    console.log(`CHIPSTI_SCHEMA_PARTS ${Math.ceil(encoded.length/2000)}`);
+
   } catch (e) {
     console.error("CHIPSTI schema inspection failed: " + (e.code || e.message));
     process.exitCode = 1;
