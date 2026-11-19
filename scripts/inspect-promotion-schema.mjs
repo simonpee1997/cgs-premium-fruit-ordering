@@ -68,12 +68,28 @@ if (
   try {
     await client.connect();
     await client.query("begin read only");
-    const functions = (await client.query("select p.oid::regprocedure::text signature,md5(p.prosrc) source_md5,pg_get_functiondef(p.oid) definition from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname in ('checkout','manage_online_order_before_delivery','place_online_order','quote_online_order','online_order_status','shop_delivery_quote','retail_action','shop_catalogue') order by 1")).rows;
-    const columns = (await client.query("select table_name,column_name,data_type,is_nullable from information_schema.columns where table_schema='public' order by table_name,ordinal_position")).rows;
-    const guards = (await client.query("select exists(select 1 from businesses where id='10000000-0000-0000-0000-000000000001' and name='CHIPSTI ENTERPRISE') chipsti, to_regclass('public.promotion_redemptions') promotions, has_schema_privilege('anon','public','CREATE') anon_create,has_schema_privilege('authenticated','public','CREATE') staff_create")).rows;
+    const functions = (
+      await client.query(
+        "select p.oid::regprocedure::text signature,md5(p.prosrc) source_md5,pg_get_functiondef(p.oid) definition from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname in ('checkout','manage_online_order_before_delivery','place_online_order','quote_online_order','online_order_status','shop_delivery_quote','retail_action','shop_catalogue') order by 1",
+      )
+    ).rows;
+    const columns = (
+      await client.query(
+        "select table_name,column_name,data_type,is_nullable from information_schema.columns where table_schema='public' order by table_name,ordinal_position",
+      )
+    ).rows;
+    const guards = (
+      await client.query(
+        "select exists(select 1 from businesses where id='10000000-0000-0000-0000-000000000001' and name='CHIPSTI ENTERPRISE') chipsti, to_regclass('public.promotion_redemptions') promotions, has_schema_privilege('anon','public','CREATE') anon_create,has_schema_privilege('authenticated','public','CREATE') staff_create",
+      )
+    ).rows;
     await client.query("rollback");
-    console.log("CHIPSTI_SCHEMA_INSPECT "+Buffer.from(JSON.stringify({functions,columns,guards})).toString('base64'));
-
+    console.log(
+      "CHIPSTI_SCHEMA_INSPECT " +
+        Buffer.from(JSON.stringify({ functions, columns, guards })).toString(
+          "base64",
+        ),
+    );
   } catch (e) {
     console.error("CHIPSTI schema inspection failed: " + (e.code || e.message));
     process.exitCode = 1;
